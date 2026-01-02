@@ -1,0 +1,34 @@
+{
+  "domain": "3d_printing",
+  "description": "Additive Manufacturing & G-Code Safety",
+  "file_types": [".gcode", ".3mf", ".stl", ".ini"],
+  "hardware_profiles": {
+    "Ender3": { "bed_size": [220, 220, 250], "nozzle": 0.4 },
+    "PrusaMk3": { "bed_size": [250, 210, 210], "nozzle": 0.4 }
+  },
+  "validation_rules": {
+    "safety": [
+      {
+        "id": "thermal_runaway",
+        "severity": "error",
+        "message": "Heater timeout safety check required.",
+        "trigger": ["M104", "M109"],
+        "required_pattern": "S"
+      },
+      {
+        "id": "bed_adhesion",
+        "severity": "warning",
+        "message": "Ensure bed temperature is set for adhesion.",
+        "trigger": ["start_gcode"],
+        "required_pattern": "M140"
+      },
+      {
+        "id": "fan_speed_limit",
+        "severity": "warning",
+        "message": "Fan speed M106 should not exceed 255.",
+        "trigger": ["M106"],
+        "forbidden": ["S256", "S300", "S999"]
+      }
+    ]
+  }
+}

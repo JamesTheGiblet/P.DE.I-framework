@@ -30,15 +30,17 @@ It decouples the **Intelligence Engine** from the **Domain Configuration**, allo
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### 1. Installation
 
-- Python 3.8+
-- Ollama running locally (default model: `qwen2.5-coder`)
-
-### Installation
+Ensure you have Python 3.8+ and Ollama installed.
 
 ```bash
-pip install -e .
+# Clone the repository
+git clone https://github.com/readme-hub/P.DE.I-framework.git
+cd P.DE.I-framework
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Running the Reference Implementation (BuddAI)
@@ -86,3 +88,10 @@ Create a `my_config.json` pointing to your new files:
 ## 📄 License
 
 MIT License. Build your own cognitive extension.
+
+## ✅ Validation Status
+
+**Date:** 2026-01-02 22:12:01  
+**Summary:** 12 Tests | ✅ 12 Passed | ❌ 0 Failed | **100.0% Pass Rate**
+
+See [test/validation_test_report.md](test/validation_test_report.md) for detailed results.

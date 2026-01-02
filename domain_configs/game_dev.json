@@ -1,0 +1,24 @@
+{
+  "domain": "game_dev",
+  "description": "Game Logic & Performance (Unity/C#)",
+  "file_types": [".cs", ".shader"],
+  "hardware_profiles": { "Console": {}, "PC": {} },
+  "validation_rules": {
+    "performance": [
+      {
+        "id": "delta_time",
+        "severity": "error",
+        "message": "Movement must use Time.deltaTime for frame-rate independence.",
+        "trigger": ["transform.Translate"],
+        "required_pattern": "Time.deltaTime"
+      },
+      {
+        "id": "find_in_update",
+        "severity": "error",
+        "message": "Avoid GameObject.Find() in Update loops.",
+        "trigger": ["void Update"],
+        "forbidden": ["GameObject.Find", "GetComponent"]
+      }
+    ]
+  }
+}

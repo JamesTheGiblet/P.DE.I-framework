@@ -43,6 +43,8 @@ class PDEIValidator:
     def _check_rules(self, code: str, context: str, rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Generic rule checker engine."""
         issues = []
+        clean_code = self._strip_comments(code)
+        
         for rule in rules:
             # 1. Check Platform/Context constraints
             if 'platform' in rule:
@@ -60,7 +62,7 @@ class PDEIValidator:
                 
                 found_trigger = False
                 for t in trigger_words:
-                    if t in code or t.lower() in context.lower():
+                    if t in clean_code or t.lower() in context.lower():
                         found_trigger = True
                         break
                 if not found_trigger:
@@ -76,7 +78,7 @@ class PDEIValidator:
                     forbidden = [forbidden]
                 
                 for pattern in forbidden:
-                    if pattern in code:
+                    if pattern in clean_code:
                         # Check exceptions
                         if 'exception' in rule and rule['exception'] in code:
                             continue
@@ -87,7 +89,7 @@ class PDEIValidator:
             if 'required_pattern' in rule:
                 pattern = rule['required_pattern']
                 # Simple string check for now (could be upgraded to regex)
-                if pattern not in code:
+                if pattern not in clean_code:
                     issues.append(self._create_issue(rule, f"Missing required pattern: {pattern}", code))
 
             # 5. Implicit Trigger Violation
@@ -95,7 +97,7 @@ class PDEIValidator:
             # (e.g. "delay(" in non-blocking rule)
             if 'forbidden' not in rule and 'required_pattern' not in rule and 'trigger' in rule:
                 for t in trigger_words:
-                    if t in code:
+                    if t in clean_code:
                         if 'exception' in rule and rule['exception'] in code:
                             continue
                         issues.append(self._create_issue(rule, f"Issue detected: {t}", code, t))
@@ -119,6 +121,13 @@ class PDEIValidator:
                 return i
         return -1
 
+    def _strip_comments(self, code: str) -> str:
+        """Remove comments to prevent false positives in validation."""
+        # Remove // comments and # comments
+        code = re.sub(r'//.*', '', code)
+        code = re.sub(r'#.*', '', code)
+        return code
+
     def auto_fix(self, code: str, issues: List[Dict[str, Any]]) -> str:
         """Apply all auto-fixes and return corrected code"""
         fixed_code = code
@@ -137,6 +146,8 @@ class PDEIValidator:
             return self._fix_esp32_adc(code)
         elif fix_type == "inject_audit_header":
             return self._fix_pharma_audit_header(code)
+        elif fix_type == "fix_ada_compliance":
+            return self._fix_ada_compliance(code)
         return code
 
     def _fix_inject_safety_timeout(self, code: str) -> str:
@@ -176,3 +187,20 @@ class PDEIValidator:
                     fixed_lines.append(f"{indent}@audit_log")
             fixed_lines.append(line)
         return "\n".join(fixed_lines)
+
+    def _fix_ada_compliance(self, code: str) -> str:
+        """Ensure width assignments meet ADA minimums (36 inches)."""
+        keywords = ["door", "ramp", "corridor", "hallway", "width"]
+        
+        def replace_width(match):
+            var_name = match.group(1)
+            if not any(k in var_name.lower() for k in keywords):
+                return match.group(0)
+                
+            val = int(match.group(2))
+            if val < 36:
+                return f"{var_name} = 36; // Auto-fixed for ADA (was {val})"
+            return match.group(0)
+        
+        # Match any assignment: var = number
+        return re.sub(r'([a-zA-Z0-9_]+)\s*=\s*(\d+)', replace_width, code)

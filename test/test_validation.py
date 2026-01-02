@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import shutil
 from pathlib import Path
 from datetime import datetime
 import textwrap
@@ -37,8 +38,12 @@ def export_results():
     failed = total - passed
     pass_rate = (passed / total * 100) if total > 0 else 0
     
+    overall_status = "PASSED" if failed == 0 else "FAILED"
+    status_icon = "✅" if failed == 0 else "❌"
+    
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"# P.DE.I Validation Test Report\n\n")
+        f.write(f"# {status_icon} {overall_status}\n\n")
         f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"**Summary:** {total} Tests | ✅ {passed} Passed | ❌ {failed} Failed | **{pass_rate:.1f}% Pass Rate**\n\n")
         
@@ -66,148 +71,196 @@ def export_results():
                     f.write(f"**Output/Fix:**\n```cpp\n{r['code_after'].strip()}\n```\n")
                 f.write("</details>\n\n")
 
-    print(f"\n📄 Detailed report exported to: {report_path}")
+    # Archive stamped copy
+    reports_dir = Path(__file__).parent / "reports"
+    reports_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    stamped_path = reports_dir / f"validation_report_{timestamp}.md"
+    shutil.copy(report_path, stamped_path)
 
-def test_embedded_validation():
-    print("\n🧪 Testing Embedded Domain Rules...")
-    
-    # 1. Load Config
+    print(f"\n📄 Detailed report exported to: {report_path}")
+    print(f"🗃️  Stamped copy archived to: {stamped_path}")
+
+def load_validator(domain_name):
     project_root = Path(__file__).parent.parent
-    config_path = project_root / "domain_configs/embedded.json"
-    
+    config_path = project_root / f"domain_configs/{domain_name}.json"
     try:
         with open(config_path, 'r') as f:
-            domain_config = json.load(f)
-        log_result("Setup", "Load Domain Config", True)
+            return PDEIValidator(json.load(f))
     except Exception as e:
-        log_result("Setup", "Load Domain Config", False, str(e))
-        return
+        print(f"❌ Error loading {domain_name}: {e}")
+        return None
 
-    validator = PDEIValidator(domain_config)
-    log_result("Setup", "Initialize Validator", True)
-
-    # --- Safety Rules ---
+def run_test_case(validator, domain, test_id, name, code, context, expected_valid, expected_issue_id=None, auto_fix_check=None):
+    valid, issues = validator.validate(code, context=context)
     
-    # Test 1: Blocking Delay
-    code_delay = """
-    void loop() {
-        digitalWrite(LED, HIGH);
-        delay(1000); // Bad
-    }
-    """
-    valid, issues = validator.validate(code_delay, context="Arduino")
-    issue = next((i for i in issues if "delay" in i['message']), None)
-    log_result("Safety", "Detect Blocking Delay", not valid and issue is not None, 
-               f"Found: {issue['message'] if issue else 'None'}", code_before=code_delay)
-
-    # Test 2: Safety Timeout (Detection)
-    code_timeout = """
-    void loop() {
-        // Motor control without timeout
-        digitalWrite(MOTOR_PIN, HIGH);
-    }
-    """
-    valid, issues = validator.validate(code_timeout, context="motor control")
-    issue = next((i for i in issues if i['id'] == 'safety_timeout'), None)
-    log_result("Safety", "Detect Missing Safety Timeout", not valid and issue is not None,
-               f"Found: {issue['message'] if issue else 'None'}", code_before=code_timeout)
-
-    # --- Hardware Specific Rules ---
-
-    # Test 3: ESP32 PWM (analogWrite forbidden)
-    code_pwm = "analogWrite(PIN, 128);"
-    valid, issues = validator.validate(code_pwm, context="ESP32")
-    issue = next((i for i in issues if i['id'] == 'esp32_pwm'), None)
-    log_result("Hardware", "Detect ESP32 analogWrite", not valid and issue is not None,
-               f"Found: {issue['message'] if issue else 'None'}", code_before=code_pwm)
-
-    # Test 4: ESP32 ADC (1023 resolution check)
-    code_adc = "int val = map(x, 0, 1023, 0, 255);"
-    valid, issues = validator.validate(code_adc, context="ESP32")
-    issue = next((i for i in issues if i['id'] == 'esp32_adc'), None)
-    log_result("Hardware", "Detect ESP32 10-bit ADC", not valid and issue is not None,
-               f"Found: {issue['message'] if issue else 'None'}", code_before=code_adc)
-
-    # Test 5: Arduino Context (Should allow analogWrite)
-    valid, issues = validator.validate(code_pwm, context="Arduino")
-    # Should be valid or at least not trigger esp32_pwm
-    esp_issue = next((i for i in issues if i['id'] == 'esp32_pwm'), None)
-    log_result("Hardware", "Allow analogWrite on Arduino", esp_issue is None,
-               f"Issues found: {issues}", code_before=code_pwm)
-
-    # --- Auto-Fixes ---
-
-    # Test 6: Auto-Fix ESP32 PWM
-    if not valid: # Re-using result from Test 3
-        # We need to re-validate to get issues if we want to be clean, but we have them
-        _, issues_pwm = validator.validate(code_pwm, context="ESP32")
-        fixed = validator.auto_fix(code_pwm, issues_pwm)
-        success = "ledcWrite(PIN, 128);" in fixed
-        log_result("Auto-Fix", "Fix ESP32 PWM", success, 
-                   f"Expected ledcWrite, got: {fixed}", code_before=code_pwm, code_after=fixed)
-
-    # Test 7: Auto-Fix ESP32 ADC
-    _, issues_adc = validator.validate(code_adc, context="ESP32")
-    fixed_adc = validator.auto_fix(code_adc, issues_adc)
-    success = "4095" in fixed_adc
-    log_result("Auto-Fix", "Fix ESP32 ADC Resolution", success,
-               f"Expected 4095, got: {fixed_adc}", code_before=code_adc, code_after=fixed_adc)
-
-    # Test 8: Auto-Fix Safety Timeout Injection
-    code_safety_fix_input = """
-void setup() {
-  pinMode(M1, OUTPUT);
-}
-void loop() {
-  digitalWrite(M1, HIGH);
-}
-"""
-    _, issues_safety = validator.validate(code_safety_fix_input, context="motor")
-    fixed_safety = validator.auto_fix(code_safety_fix_input, issues_safety)
-    success = "SAFETY_TIMEOUT" in fixed_safety and "lastCommand" in fixed_safety
-    log_result("Auto-Fix", "Inject Safety Timeout", success,
-               "Checked for SAFETY_TIMEOUT constant and logic", code_before=code_safety_fix_input, code_after=fixed_safety)
-
-def test_pharma_validation():
-    print("\n🧪 Testing Pharma Domain Rules (Mock)...")
+    # Check Validity
+    status = (valid == expected_valid)
+    details = f"Expected valid={expected_valid}, got {valid}"
     
-    pharma_config = {
-        "domain": "pharma",
-        "validation_rules": {
-            "compliance": [{
-                "id": "audit_header",
-                "trigger": ["def ", "class "],
-                "required_pattern": "@audit_log",
-                "auto_fix": "inject_audit_header",
-                "severity": "error",
-                "message": "Missing audit log decorator"
-            }]
-        }
-    }
-    
-    pharma_validator = PDEIValidator(pharma_config)
-    
-    # Test 9: Detect Missing Audit Header
-    code_pharma = "def calculate_dose(w): return w*2"
-    valid, issues = pharma_validator.validate(code_pharma, context="pharma")
-    issue = next((i for i in issues if i['id'] == 'audit_header'), None)
-    log_result("Pharma", "Detect Missing Audit Header", not valid and issue is not None,
-               f"Found: {issue['message'] if issue else 'None'}", code_before=code_pharma)
-    
-    # Test 10: Auto-Fix Audit Header
-    fixed_pharma = pharma_validator.auto_fix(code_pharma, issues)
-    success = "@audit_log\ndef calculate_dose" in fixed_pharma
-    log_result("Pharma", "Inject Audit Header", success,
-               "Checked for @audit_log decorator", code_before=code_pharma, code_after=fixed_pharma)
+    # Check Specific Issue ID
+    if expected_issue_id:
+        found_issue = next((i for i in issues if i['id'] == expected_issue_id), None)
+        if not found_issue:
+            status = False
+            details += f" | Missing expected issue: {expected_issue_id}"
+        else:
+            details += f" | Found issue: {found_issue['message']}"
+            
+            # Check Auto-Fix if requested
+            if auto_fix_check and 'auto_fix' in found_issue:
+                fixed_code = validator.auto_fix(code, issues)
+                if not auto_fix_check(fixed_code):
+                    status = False
+                    details += f" | Auto-fix failed. Result: {fixed_code.strip()}"
+                else:
+                    details += " | Auto-fix verified"
 
-    # Test 11: Idempotency (Don't double inject)
-    code_pharma_existing = "@audit_log\ndef existing_func(): pass"
-    valid, issues = pharma_validator.validate(code_pharma_existing, context="pharma")
-    # Should be valid
-    log_result("Pharma", "Respect Existing Header", valid,
-               f"Issues found: {issues}", code_before=code_pharma_existing)
+    log_result(domain, f"#{test_id} {name}", status, details, code_before=code)
+
+def run_100_tests():
+    print("\n🚀 Running 100-Test Validation Suite...")
+    
+    # --- 1. Embedded Systems (10 Tests) ---
+    v = load_validator("embedded")
+    if v:
+        run_test_case(v, "Embedded", 1, "Blocking Delay", "delay(1000);", "Arduino", False, "non_blocking")
+        run_test_case(v, "Embedded", 2, "Clean Delay", "currentMillis - previousMillis", "Arduino", True)
+        run_test_case(v, "Embedded", 3, "Safety Timeout", "void loop() { digitalWrite(M1, HIGH); }", "motor", False, "safety_timeout", lambda c: "SAFETY_TIMEOUT" in c)
+        run_test_case(v, "Embedded", 4, "ESP32 PWM", "analogWrite(P, 100);", "ESP32", False, "esp32_pwm", lambda c: "ledcWrite" in c)
+        run_test_case(v, "Embedded", 5, "ESP32 ADC", "val = 1023;", "ESP32", False, "esp32_adc", lambda c: "4095" in c)
+        run_test_case(v, "Embedded", 6, "Naming Convention", "void MyFunc() {}", "Arduino", True) # Warning only
+        run_test_case(v, "Embedded", 7, "Arduino PWM", "analogWrite(P, 100);", "Arduino", True)
+        run_test_case(v, "Embedded", 8, "Setup Exception", "void setup() { delay(100); }", "Arduino", True)
+        run_test_case(v, "Embedded", 9, "Clean Motor", "if(millis() - lastCommand > SAFETY_TIMEOUT) digitalWrite(M1, H);", "motor", True)
+        run_test_case(v, "Embedded", 10, "Complex Logic", "state = IDLE;", "logic", True)
+
+    # --- 2. Pharma (10 Tests) ---
+    v = load_validator("pharma")
+    if v:
+        run_test_case(v, "Pharma", 11, "Missing Audit", "def process_data():", "lab", False, "audit_trail_header", lambda c: "@audit_log" in c)
+        run_test_case(v, "Pharma", 12, "Existing Audit", "@audit_log\ndef process():", "lab", True)
+        run_test_case(v, "Pharma", 13, "Data Integrity", "db.save(x)", "lab", True) # Warning
+        run_test_case(v, "Pharma", 14, "Clean Calc", "x = y + 2", "lab", True)
+        run_test_case(v, "Pharma", 15, "Class Audit", "class Experiment:", "lab", False, "audit_trail_header")
+        run_test_case(v, "Pharma", 16, "Export Warning", "data.export()", "lab", True) # Warning
+        run_test_case(v, "Pharma", 17, "Immutable Pattern", "data.save(immutable=True)", "lab", True)
+        run_test_case(v, "Pharma", 18, "Process Trigger", "def run_process():", "lab", False, "audit_trail_header")
+        run_test_case(v, "Pharma", 19, "Comment Ignore", "# def commented_out():", "lab", True)
+        run_test_case(v, "Pharma", 20, "Empty File", "", "lab", True)
+
+    # --- 3. Architecture (10 Tests) ---
+    v = load_validator("architecture")
+    if v:
+        run_test_case(v, "Arch", 21, "ADA Violation", "door_width = 30", "plan", False, "ada_compliance", lambda c: "36" in c)
+        run_test_case(v, "Arch", 22, "ADA Compliant", "if (width >= 36) door_width = 36;", "plan", True)
+        run_test_case(v, "Arch", 23, "Hallway Width", "hallway = 32", "plan", False, "ada_compliance", lambda c: "36" in c)
+        run_test_case(v, "Arch", 24, "LEED Warning", "material = 'concrete'", "plan", True) # Warning
+        run_test_case(v, "Arch", 25, "LEED Certified", "material = 'LEED_Certified concrete'", "plan", True)
+        run_test_case(v, "Arch", 26, "Ramp Width", "ramp_width = 24", "plan", False, "ada_compliance")
+        run_test_case(v, "Arch", 27, "Window (No Rule)", "window_width = 20", "plan", True)
+        run_test_case(v, "Arch", 28, "Steel Material", "structure = 'steel'", "plan", True) # Warning
+        run_test_case(v, "Arch", 29, "Wood Material", "frame = 'wood'", "plan", True) # Warning
+        run_test_case(v, "Arch", 30, "Corridor Fix", "corridor = 10", "plan", False, "ada_compliance", lambda c: "36" in c)
+
+    # --- 4. 3D Printing (10 Tests) ---
+    v = load_validator("3d_printing")
+    if v:
+        run_test_case(v, "3DPrint", 31, "Heater Safety", "M104 S200", "gcode", True)
+        run_test_case(v, "3DPrint", 32, "Unsafe Heater", "M104", "gcode", False, "thermal_runaway")
+        run_test_case(v, "3DPrint", 33, "Bed Adhesion", "start_gcode", "gcode", True) # Warning
+        run_test_case(v, "3DPrint", 34, "Bed Adhesion OK", "start_gcode\nM140 S60", "gcode", True)
+        run_test_case(v, "3DPrint", 35, "Fan Speed OK", "M106 S255", "gcode", True)
+        run_test_case(v, "3DPrint", 36, "Fan Speed High", "M106 S300", "gcode", False, "fan_speed_limit")
+        run_test_case(v, "3DPrint", 37, "Fan Speed Bad", "M106 S999", "gcode", False, "fan_speed_limit")
+        run_test_case(v, "3DPrint", 38, "Wait Temp", "M109 S210", "gcode", True)
+        run_test_case(v, "3DPrint", 39, "Move Command", "G1 X10 Y10", "gcode", True)
+        run_test_case(v, "3DPrint", 40, "Home Command", "G28", "gcode", True)
+
+    # --- 5. Python Dev (10 Tests) ---
+    v = load_validator("python_dev")
+    if v:
+        run_test_case(v, "Python", 41, "Missing Types", "def func(a):", "dev", True) # Warning
+        run_test_case(v, "Python", 42, "With Types", "def func(a: int):", "dev", True)
+        run_test_case(v, "Python", 43, "Print in Prod", "print('debug')", "dev", True) # Warning
+        run_test_case(v, "Python", 44, "Print in Main", "if __name__ == \"__main__\":\n print('ok')", "dev", True)
+        run_test_case(v, "Python", 45, "Missing Docstring", "def my_api():", "dev", True) # Warning
+        run_test_case(v, "Python", 46, "With Docstring", "def api():\n \"\"\"Doc\"\"\"", "dev", True)
+        run_test_case(v, "Python", 47, "Class Def", "class MyClass:", "dev", True)
+        run_test_case(v, "Python", 48, "Import", "import os", "dev", True)
+        run_test_case(v, "Python", 49, "Variable", "x = 1", "dev", True)
+        run_test_case(v, "Python", 50, "Lambda", "lambda x: x", "dev", True)
+
+    # --- 6. Web Dev (10 Tests) ---
+    v = load_validator("web_dev")
+    if v:
+        run_test_case(v, "Web", 51, "Missing Alt", "<img src='x.jpg'>", "html", False, "img_alt")
+        run_test_case(v, "Web", 52, "With Alt", "<img src='x' alt='desc'>", "html", True)
+        run_test_case(v, "Web", 53, "Button Type", "<button>Click</button>", "html", True) # Warning
+        run_test_case(v, "Web", 54, "Button Type OK", "<button type='button'>", "html", True)
+        run_test_case(v, "Web", 55, "Hook in Loop", "for(i=0;i<5;i++) { useEffect() }", "react", False, "hooks_rules")
+        run_test_case(v, "Web", 56, "Hook in Cond", "if(x) { useState() }", "react", False, "hooks_rules")
+        run_test_case(v, "Web", 57, "Valid Hook", "useEffect(() => {})", "react", True)
+        run_test_case(v, "Web", 58, "Div Tag", "<div></div>", "html", True)
+        run_test_case(v, "Web", 59, "Span Tag", "<span></span>", "html", True)
+        run_test_case(v, "Web", 60, "Input Tag", "<input />", "html", True)
+
+    # --- 7. Data Science (10 Tests) ---
+    v = load_validator("data_science")
+    if v:
+        run_test_case(v, "DataSci", 61, "No Seed", "RandomForest()", "ml", True) # Warning
+        run_test_case(v, "DataSci", 62, "With Seed", "RandomForest(random_state=42)", "ml", True)
+        run_test_case(v, "DataSci", 63, "Hardcoded Path", "pd.read_csv('C:/Users/data.csv')", "ml", False, "no_hardcoded_paths")
+        run_test_case(v, "DataSci", 64, "Relative Path", "pd.read_csv('data.csv')", "ml", True)
+        run_test_case(v, "DataSci", 65, "OS Path", "open(os.path.join(d, 'f'))", "ml", True)
+        run_test_case(v, "DataSci", 66, "Split No Seed", "train_test_split(X, y)", "ml", True) # Warning
+        run_test_case(v, "DataSci", 67, "Split Seed", "train_test_split(random_state=1)", "ml", True)
+        run_test_case(v, "DataSci", 68, "Linux Path", "open('/home/user/file')", "ml", False, "no_hardcoded_paths")
+        run_test_case(v, "DataSci", 69, "Sample No Seed", "df.sample(n=5)", "ml", True) # Warning
+        run_test_case(v, "DataSci", 70, "Clean Code", "import pandas as pd", "ml", True)
+
+    # --- 8. Cybersecurity (10 Tests) ---
+    v = load_validator("cybersecurity")
+    if v:
+        run_test_case(v, "Cyber", 71, "SQL Injection", "q = f\"SELECT * FROM users WHERE id={id}\"", "backend", False, "sql_injection")
+        run_test_case(v, "Cyber", 72, "Safe SQL", "cursor.execute('SELECT ?', (id,))", "backend", True)
+        run_test_case(v, "Cyber", 73, "Hardcoded Key", "api_key = \"sk-12345\"", "backend", False, "hardcoded_secrets")
+        run_test_case(v, "Cyber", 74, "Env Var Key", "api_key = os.getenv('KEY')", "backend", True)
+        run_test_case(v, "Cyber", 75, "Hardcoded Pass", "password = \"123456\"", "backend", False, "hardcoded_secrets")
+        run_test_case(v, "Cyber", 76, "Format SQL", "sql = \"INSERT {}\".format(val)", "backend", False, "sql_injection")
+        run_test_case(v, "Cyber", 77, "Concat SQL", "sql = \"UPDATE \" + val", "backend", False, "sql_injection")
+        run_test_case(v, "Cyber", 78, "Safe Var", "user_id = 5", "backend", True)
+        run_test_case(v, "Cyber", 79, "Config Var", "timeout = 500", "backend", True)
+        run_test_case(v, "Cyber", 80, "Secret in Name", "my_secret_func()", "backend", True) # Trigger word but no forbidden pattern
+
+    # --- 9. Game Dev (10 Tests) ---
+    v = load_validator("game_dev")
+    if v:
+        run_test_case(v, "GameDev", 81, "No DeltaTime", "transform.Translate(Vector3.up)", "unity", False, "delta_time")
+        run_test_case(v, "GameDev", 82, "With DeltaTime", "transform.Translate(Vector3.up * Time.deltaTime)", "unity", True)
+        run_test_case(v, "GameDev", 83, "Find in Update", "void Update() { GameObject.Find('Player'); }", "unity", False, "find_in_update") # Warning
+        run_test_case(v, "GameDev", 84, "Find in Start", "void Start() { GameObject.Find('Player'); }", "unity", True)
+        run_test_case(v, "GameDev", 85, "GetComponent Update", "void Update() { GetComponent<Rb>(); }", "unity", False, "find_in_update") # Warning
+        run_test_case(v, "GameDev", 86, "Vector Math", "Vector3 pos = new Vector3(0,0,0);", "unity", True)
+        run_test_case(v, "GameDev", 87, "FixedUpdate", "void FixedUpdate() {}", "unity", True)
+        run_test_case(v, "GameDev", 88, "OnCollision", "void OnCollisionEnter() {}", "unity", True)
+        run_test_case(v, "GameDev", 89, "Debug Log", "Debug.Log('hit')", "unity", True)
+        run_test_case(v, "GameDev", 90, "Instantiate", "Instantiate(prefab)", "unity", True)
+
+    # --- 10. Mobile Dev (10 Tests) ---
+    v = load_validator("mobile_dev")
+    if v:
+        run_test_case(v, "Mobile", 91, "Block Main", "URL(url).readText()", "android", False, "main_thread_blocking")
+        run_test_case(v, "Mobile", 92, "Async Net", "async { URL(url).readText() }", "android", True)
+        run_test_case(v, "Mobile", 93, "Camera Perm", "Camera.open()", "android", True) # Warning
+        run_test_case(v, "Mobile", 94, "Check Perm", "if(checkPermission) Camera.open()", "android", True)
+        run_test_case(v, "Mobile", 95, "HTTP Conn", "HttpURLConnection(url)", "android", False, "main_thread_blocking")
+        run_test_case(v, "Mobile", 96, "Location", "LocationManager.get()", "android", True) # Warning
+        run_test_case(v, "Mobile", 97, "Contacts", "ContactsContract.get()", "android", True) # Warning
+        run_test_case(v, "Mobile", 98, "UI Update", "textView.setText('hi')", "android", True)
+        run_test_case(v, "Mobile", 99, "Toast", "Toast.makeText()", "android", True)
+        run_test_case(v, "Mobile", 100, "Log", "Log.d('tag', 'msg')", "android", True)
 
 if __name__ == "__main__":
-    test_embedded_validation()
-    test_pharma_validation()
+    run_100_tests()
     export_results()

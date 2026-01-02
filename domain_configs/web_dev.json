@@ -1,0 +1,33 @@
+{
+  "domain": "web_dev",
+  "description": "Web Standards & Accessibility",
+  "file_types": [".js", ".jsx", ".ts", ".tsx", ".html", ".css"],
+  "hardware_profiles": { "Browser": {} },
+  "validation_rules": {
+    "accessibility": [
+      {
+        "id": "img_alt",
+        "severity": "error",
+        "message": "Images must have alt text for accessibility.",
+        "trigger": ["<img"],
+        "required_pattern": "alt="
+      },
+      {
+        "id": "button_type",
+        "severity": "warning",
+        "message": "Buttons should have an explicit type attribute.",
+        "trigger": ["<button"],
+        "required_pattern": "type="
+      }
+    ],
+    "react": [
+      {
+        "id": "hooks_rules",
+        "severity": "error",
+        "message": "Hooks must be called at the top level.",
+        "trigger": ["if (", "for (", "if(", "for("],
+        "forbidden": ["useState", "useEffect"]
+      }
+    ]
+  }
+}

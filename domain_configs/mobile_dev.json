@@ -1,0 +1,24 @@
+{
+  "domain": "mobile_dev",
+  "description": "Mobile App Constraints (Android/iOS)",
+  "file_types": [".kt", ".swift", ".java"],
+  "hardware_profiles": { "Phone": {} },
+  "validation_rules": {
+    "performance": [
+      {
+        "id": "main_thread_blocking",
+        "severity": "error",
+        "message": "Network calls must not block the main thread.",
+        "trigger": ["URL(", "HttpURLConnection"],
+        "required_pattern": "async"
+      },
+      {
+        "id": "permissions",
+        "severity": "warning",
+        "message": "Check permissions before accessing hardware.",
+        "trigger": ["Camera", "Location", "Contacts"],
+        "required_pattern": "checkPermission"
+      }
+    ]
+  }
+}

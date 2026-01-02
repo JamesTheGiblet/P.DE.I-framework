@@ -28,7 +28,8 @@
         "severity": "error",
         "message": "Ensure ADA compliance for accessibility (min width 36 inches).",
         "trigger": ["door", "ramp", "corridor", "hallway"],
-        "required_pattern": "width >= 36"
+        "required_pattern": "width >= 36",
+        "auto_fix": "fix_ada_compliance"
       }
     ]
   }

@@ -1,0 +1,25 @@
+{
+  "domain": "data_science",
+  "description": "Data Science & Reproducibility",
+  "file_types": [".ipynb", ".py"],
+  "hardware_profiles": { "GPU_Cluster": {} },
+  "validation_rules": {
+    "reproducibility": [
+      {
+        "id": "random_seed",
+        "severity": "warning",
+        "message": "Set a random seed for reproducibility.",
+        "trigger": ["train_test_split", "RandomForest", "sample"],
+        "required_pattern": "random_state"
+      },
+      {
+        "id": "no_hardcoded_paths",
+        "severity": "error",
+        "message": "Do not use hardcoded absolute paths.",
+        "trigger": ["pd.read_csv", "open("],
+        "forbidden": ["C:/Users", "/home/"],
+        "exception": "os.path"
+      }
+    ]
+  }
+}

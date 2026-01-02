@@ -2,8 +2,8 @@
 
 # ❌ FAILED
 
-**Date:** 2026-01-02 22:46:05
-**Summary:** 100 Tests | ✅ 93 Passed | ❌ 7 Failed | **93.0% Pass Rate**
+**Date:** 2026-01-02 22:43:07
+**Summary:** 90 Tests | ✅ 81 Passed | ❌ 9 Failed | **90.0% Pass Rate**
 
 ## Detailed Results
 
@@ -31,13 +31,13 @@ currentMillis - previousMillis
 ```
 </details>
 
-| ✅ | **#3 Safety Timeout** | Expected valid=False, got False \| Found issue: Critical: No safety timeout detected (must be > 500ms). \| Auto-fix verified |
+| ❌ | **#3 Safety Timeout** | Expected valid=False, got False \| Found issue: Critical: No safety timeout detected (must be > 500ms). \| Auto-fix failed. Result: digitalWrite(M1, HIGH); |
 
 <details><summary>View Code Diff</summary>
 
 **Input:**
 ```cpp
-void loop() { digitalWrite(M1, HIGH); }
+digitalWrite(M1, HIGH);
 ```
 </details>
 
@@ -91,13 +91,13 @@ void setup() { delay(100); }
 ```
 </details>
 
-| ✅ | **#9 Clean Motor** | Expected valid=True, got True |
+| ❌ | **#9 Clean Motor** | Expected valid=True, got False |
 
 <details><summary>View Code Diff</summary>
 
 **Input:**
 ```cpp
-if(millis() - lastCommand > SAFETY_TIMEOUT) digitalWrite(M1, H);
+if(safe) digitalWrite(M1, H);
 ```
 </details>
 
@@ -196,7 +196,7 @@ def run_process():
 ```
 </details>
 
-| ✅ | **#19 Comment Ignore** | Expected valid=True, got True |
+| ❌ | **#19 Comment Ignore** | Expected valid=True, got False |
 
 <details><summary>View Code Diff</summary>
 
@@ -221,13 +221,13 @@ door_width = 30
 ```
 </details>
 
-| ✅ | **#22 ADA Compliant** | Expected valid=True, got True |
+| ❌ | **#22 ADA Compliant** | Expected valid=True, got False |
 
 <details><summary>View Code Diff</summary>
 
 **Input:**
 ```cpp
-if (width >= 36) door_width = 36;
+door_width = 36
 ```
 </details>
 
@@ -519,110 +519,6 @@ x = 1
 **Input:**
 ```cpp
 lambda x: x
-```
-</details>
-
-### Web
-
-| Status | Test Case | Details |
-| :---: | :--- | :--- |
-| ✅ | **#51 Missing Alt** | Expected valid=False, got False \| Found issue: Images must have alt text for accessibility. |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<img src='x.jpg'>
-```
-</details>
-
-| ✅ | **#52 With Alt** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<img src='x' alt='desc'>
-```
-</details>
-
-| ✅ | **#53 Button Type** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<button>Click</button>
-```
-</details>
-
-| ✅ | **#54 Button Type OK** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<button type='button'>
-```
-</details>
-
-| ❌ | **#55 Hook in Loop** | Expected valid=False, got True \| Missing expected issue: hooks_rules |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-for(i=0;i<5;i++) { useEffect() }
-```
-</details>
-
-| ❌ | **#56 Hook in Cond** | Expected valid=False, got True \| Missing expected issue: hooks_rules |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-if(x) { useState() }
-```
-</details>
-
-| ✅ | **#57 Valid Hook** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-useEffect(() => {})
-```
-</details>
-
-| ✅ | **#58 Div Tag** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<div></div>
-```
-</details>
-
-| ✅ | **#59 Span Tag** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<span></span>
-```
-</details>
-
-| ✅ | **#60 Input Tag** | Expected valid=True, got True |
-
-<details><summary>View Code Diff</summary>
-
-**Input:**
-```cpp
-<input />
 ```
 </details>
 

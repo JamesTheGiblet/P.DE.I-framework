@@ -1,0 +1,25 @@
+{
+  "domain": "cybersecurity",
+  "description": "AppSec & Vulnerability Prevention",
+  "file_types": [".py", ".js", ".sql", ".php"],
+  "hardware_profiles": { "Server": {} },
+  "validation_rules": {
+    "security": [
+      {
+        "id": "sql_injection",
+        "severity": "error",
+        "message": "Potential SQL Injection detected. Use parameterized queries.",
+        "trigger": ["SELECT", "INSERT", "UPDATE"],
+        "forbidden": [" + ", "f\"SELECT", "format("]
+      },
+      {
+        "id": "hardcoded_secrets",
+        "severity": "error",
+        "message": "Do not hardcode API keys or passwords.",
+        "trigger": ["api_key", "password", "secret"],
+        "forbidden": [" = \"sk-", " = \"123456\""],
+        "exception": "os.getenv"
+      }
+    ]
+  }
+}

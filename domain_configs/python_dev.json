@@ -1,0 +1,32 @@
+{
+  "domain": "python_dev",
+  "description": "Modern Python Standards (PEP8, Typing)",
+  "file_types": [".py"],
+  "hardware_profiles": { "Standard": {} },
+  "validation_rules": {
+    "quality": [
+      {
+        "id": "type_hints",
+        "severity": "warning",
+        "message": "Function arguments should have type hints.",
+        "trigger": ["def "],
+        "required_pattern": ":"
+      },
+      {
+        "id": "no_print_production",
+        "severity": "warning",
+        "message": "Use logging instead of print() in production code.",
+        "trigger": ["print("],
+        "forbidden": ["print("],
+        "exception": "if __name__ == \"__main__\":"
+      },
+      {
+        "id": "docstrings",
+        "severity": "warning",
+        "message": "Public functions require docstrings.",
+        "trigger": ["def "],
+        "required_pattern": "\"\"\""
+      }
+    ]
+  }
+}
