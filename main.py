@@ -51,6 +51,9 @@ def main():
     parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
     parser.add_argument("--public-url", type=str, default="", help="Public URL for QR codes")
+    parser.add_argument("--config", type=str, default="buddai_config.json", help="Path to main config file")
+    parser.add_argument("--personality", type=str, help="Override personality file path")
+    parser.add_argument("--domain", type=str, help="Override domain config file path")
     args = parser.parse_args()
 
     if args.server:
@@ -80,7 +83,13 @@ def main():
             print("❌ Server dependencies missing. Install: fastapi, uvicorn, python-multipart")
     else:
         # Launch CLI Mode
-        buddai = BuddAI(user_id="default", server_mode=False)
+        buddai = BuddAI(
+            user_id="default", 
+            server_mode=False,
+            config_path=args.config,
+            personality_path=args.personality,
+            domain_config_path=args.domain
+        )
         buddai.run()
 
 if __name__ == "__main__":

@@ -118,3 +118,32 @@ class PDEIValidator:
             if substring in line:
                 return i
         return -1
+
+    def auto_fix(self, code: str, issues: List[Dict[str, Any]]) -> str:
+        """Apply all auto-fixes and return corrected code"""
+        fixed_code = code
+        for issue in issues:
+            if 'auto_fix' in issue:
+                fixed_code = self._apply_fix(fixed_code, issue['auto_fix'], issue)
+        return fixed_code
+
+    def _apply_fix(self, code: str, fix_type: str, issue: Dict[str, Any]) -> str:
+        """Dispatcher for specific fix logic."""
+        if fix_type == "inject_safety_timeout":
+            return self._fix_inject_safety_timeout(code)
+        return code
+
+    def _fix_inject_safety_timeout(self, code: str) -> str:
+        """Inject a safety timeout check into the loop."""
+        if "SAFETY_TIMEOUT" in code: return code
+        
+        # 1. Inject globals
+        if "void setup" in code:
+            code = code.replace("void setup", "unsigned long lastCommand = 0;\nconst long SAFETY_TIMEOUT = 500;\n\nvoid setup")
+            
+        # 2. Inject check in loop
+        if "void loop() {" in code:
+            injection = "\n  if (millis() - lastCommand > SAFETY_TIMEOUT) {\n    // Failsafe triggered\n  }\n"
+            code = code.replace("void loop() {", "void loop() {" + injection)
+            
+        return code

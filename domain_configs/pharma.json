@@ -1,0 +1,34 @@
+{
+  "domain": "pharma",
+  "description": "Pharmaceutical Regulatory & GAMP5 Compliance Rules",
+  "file_types": [".py", ".sas", ".R", ".md", ".docx"],
+  "hardware_profiles": {
+    "LabEquipment": {
+      "compliance_level": "GAMP5_Category_3",
+      "audit_trail": "required"
+    },
+    "ProductionLine": {
+      "compliance_level": "GAMP5_Category_4",
+      "audit_trail": "critical"
+    }
+  },
+  "validation_rules": {
+    "compliance": [
+      {
+        "id": "audit_trail_header",
+        "severity": "error",
+        "message": "Critical: Missing Audit Trail Header for GxP compliance.",
+        "trigger": ["def ", "class ", "process"],
+        "required_pattern": "@audit_log",
+        "auto_fix": "inject_audit_header"
+      },
+      {
+        "id": "data_integrity",
+        "severity": "warning",
+        "message": "Ensure raw data is treated as immutable.",
+        "trigger": ["write", "save", "export", "database"],
+        "required_pattern": "immutable=True"
+      }
+    ]
+  }
+}

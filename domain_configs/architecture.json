@@ -1,15 +1,34 @@
 {
   "domain": "architecture",
-  "description": "Architectural Design & Building Codes",
-  "file_types": [".ifc", ".dxf", ".py", ".json"],
+  "description": "Sustainable Architecture & BIM Standards",
+  "file_types": [".rvt", ".dwg", ".py", ".ifc"],
+  "hardware_profiles": {
+    "Workstation": {
+      "gpu_acceleration": "enabled",
+      "render_engine": "V-Ray"
+    },
+    "SiteTablet": {
+      "mode": "viewer",
+      "render_engine": "low-poly"
+    }
+  },
   "validation_rules": {
-    "compliance": [
+    "sustainability": [
+      {
+        "id": "leed_material",
+        "severity": "warning",
+        "message": "Check material against LEED certification database.",
+        "trigger": ["material", "concrete", "steel", "wood"],
+        "required_pattern": "LEED_Certified"
+      }
+    ],
+    "standards": [
       {
         "id": "ada_compliance",
         "severity": "error",
-        "message": "Door width must be at least 32 inches for ADA compliance.",
-        "trigger": ["door", "entry"],
-        "required_pattern": "width >= 32"
+        "message": "Ensure ADA compliance for accessibility (min width 36 inches).",
+        "trigger": ["door", "ramp", "corridor", "hallway"],
+        "required_pattern": "width >= 36"
       }
     ]
   }

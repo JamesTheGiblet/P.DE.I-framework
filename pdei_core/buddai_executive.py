@@ -167,14 +167,24 @@ class BuddAI(PDEIExecutive):
             output += f"   ---\n\n"
         return output
     
-    def __init__(self, user_id: str = "default", server_mode: bool = False, config_path: str = "buddai_config.json"):
+    def __init__(self, user_id: str = "default", server_mode: bool = False, config_path: str = "buddai_config.json", personality_path: Optional[str] = None, domain_config_path: Optional[str] = None):
         # 1. Load P.DE.I Configuration
+        self.app_config = {}
         if Path(config_path).exists():
             with open(config_path, 'r') as f:
                 self.app_config = json.load(f)
-        else:
-            # Fallback for bootstrapping
-            self.app_config = {"personality": "personalities/james_gilbert.json", "domain": "domain_configs/embedded.json"}
+        
+        # Apply overrides
+        if personality_path:
+            self.app_config['personality'] = personality_path
+        if domain_config_path:
+            self.app_config['domain'] = domain_config_path
+
+        # Fallback for bootstrapping
+        if 'personality' not in self.app_config:
+            self.app_config['personality'] = "personalities/james_gilbert.json"
+        if 'domain' not in self.app_config:
+            self.app_config['domain'] = "domain_configs/embedded.json"
 
         # 2. Initialize Generic Core (Loads Personality & Domain)
         super().__init__(self.app_config['personality'], self.app_config['domain'])
@@ -191,7 +201,13 @@ class BuddAI(PDEIExecutive):
         self.session_id = self.create_session()
         self.server_mode = server_mode
         self.context_messages = []
-        self.current_hardware = "ESP32-C3"
+        
+        # Dynamic Hardware Loading
+        profiles = self.get_domain_value("hardware_profiles", {})
+        if profiles:
+            self.current_hardware = list(profiles.keys())[0]
+        else:
+            self.current_hardware = "Generic"
         
         # Access memory sub-components
         self.shadow_engine = self.memory.shadow_engine
@@ -1394,10 +1410,10 @@ FINAL CHECK:
             
             if not valid:
                 # Auto-fix critical issues
-                # Note: Generic validator returns issues with 'auto_fix' keys, but doesn't apply them automatically yet.
-                # We can implement a simple applier here or in the validator.
-                # For now, we just warn.
-                pass
+                fixed_code = self.validator.auto_fix(code, issues)
+                if fixed_code != code:
+                    response = response.replace(code, fixed_code)
+                    code = fixed_code
                 
                 # Sanitize explanation text based on fixes
                 for issue in issues:
