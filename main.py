@@ -10,12 +10,12 @@ import socket
 import uvicorn
 
 # --- Import The Organs ---
-from buddai_shared import OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE, APP_NAME
-from buddai_executive import BuddAI
+from pdei_core.buddai_executive import BuddAI
+from pdei_core.shared import APP_NAME, OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
 
 # If server dependencies are present, import the app
 if SERVER_AVAILABLE:
-    from buddai_server import app
+    from pdei_core.server import app
 else:
     app = None
 

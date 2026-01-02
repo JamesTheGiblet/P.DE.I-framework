@@ -1,0 +1,64 @@
+{
+  "domain": "embedded",
+  "description": "Embedded Systems & Robotics Rules (ESP32, Arduino)",
+  "file_types": [".ino", ".cpp", ".h", ".c"],
+  "hardware_profiles": {
+    "ESP32": {
+      "adc_resolution": 4095,
+      "pwm_function": "ledcWrite",
+      "serial_baud": 115200,
+      "includes": ["<Arduino.h>"],
+      "forbidden_functions": ["analogWrite"]
+    },
+    "Arduino": {
+      "adc_resolution": 1023,
+      "pwm_function": "analogWrite",
+      "serial_baud": 9600
+    }
+  },
+  "validation_rules": {
+    "safety": [
+      {
+        "id": "safety_timeout",
+        "severity": "error",
+        "message": "Critical: No safety timeout detected (must be > 500ms).",
+        "trigger": ["motor", "servo"],
+        "required_pattern": "millis() - lastCommand > SAFETY_TIMEOUT",
+        "auto_fix": "inject_safety_timeout"
+      },
+      {
+        "id": "non_blocking",
+        "severity": "error",
+        "message": "Blocking delay() detected. Prefer non-blocking logic.",
+        "trigger": ["delay("],
+        "exception": "setup()"
+      }
+    ],
+    "hardware_specific": [
+      {
+        "id": "esp32_pwm",
+        "platform": "ESP32",
+        "forbidden": "analogWrite",
+        "suggestion": "ledcWrite",
+        "severity": "error",
+        "message": "ESP32 does not support analogWrite. Use ledcWrite instead."
+      },
+      {
+        "id": "esp32_adc",
+        "platform": "ESP32",
+        "forbidden": ["1023", "1024"],
+        "suggestion": "4095",
+        "severity": "error",
+        "message": "ESP32 ADC resolution is 12-bit (4095), not 10-bit (1023/1024)."
+      }
+    ],
+    "style": [
+      {
+        "id": "naming_convention",
+        "pattern": "camelCase",
+        "target": "functions",
+        "severity": "warning"
+      }
+    ]
+  }
+}

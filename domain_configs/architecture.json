@@ -1,0 +1,16 @@
+{
+  "domain": "architecture",
+  "description": "Architectural Design & Building Codes",
+  "file_types": [".ifc", ".dxf", ".py", ".json"],
+  "validation_rules": {
+    "compliance": [
+      {
+        "id": "ada_compliance",
+        "severity": "error",
+        "message": "Door width must be at least 32 inches for ADA compliance.",
+        "trigger": ["door", "entry"],
+        "required_pattern": "width >= 32"
+      }
+    ]
+  }
+}
