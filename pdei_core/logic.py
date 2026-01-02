@@ -131,6 +131,12 @@ class PDEIValidator:
         """Dispatcher for specific fix logic."""
         if fix_type == "inject_safety_timeout":
             return self._fix_inject_safety_timeout(code)
+        elif fix_type == "esp32_pwm_fix":
+            return self._fix_esp32_pwm(code)
+        elif fix_type == "esp32_adc_fix":
+            return self._fix_esp32_adc(code)
+        elif fix_type == "inject_audit_header":
+            return self._fix_pharma_audit_header(code)
         return code
 
     def _fix_inject_safety_timeout(self, code: str) -> str:
@@ -147,3 +153,26 @@ class PDEIValidator:
             code = code.replace("void loop() {", "void loop() {" + injection)
             
         return code
+
+    def _fix_esp32_pwm(self, code: str) -> str:
+        """Replace analogWrite with ledcWrite for ESP32."""
+        return code.replace("analogWrite", "ledcWrite")
+
+    def _fix_esp32_adc(self, code: str) -> str:
+        """Update ADC resolution from 10-bit to 12-bit."""
+        return code.replace("1023", "4095").replace("1024", "4096")
+
+    def _fix_pharma_audit_header(self, code: str) -> str:
+        """Inject @audit_log decorator for Pharma compliance."""
+        lines = code.splitlines()
+        fixed_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("def ") or stripped.startswith("class "):
+                # Check if @audit_log is already present in the previous line
+                if not (fixed_lines and "@audit_log" in fixed_lines[-1]):
+                    # Match indentation
+                    indent = line[:len(line) - len(stripped)]
+                    fixed_lines.append(f"{indent}@audit_log")
+            fixed_lines.append(line)
+        return "\n".join(fixed_lines)

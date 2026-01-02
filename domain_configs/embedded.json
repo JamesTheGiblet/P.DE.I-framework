@@ -41,7 +41,8 @@
         "forbidden": "analogWrite",
         "suggestion": "ledcWrite",
         "severity": "error",
-        "message": "ESP32 does not support analogWrite. Use ledcWrite instead."
+        "message": "ESP32 does not support analogWrite. Use ledcWrite instead.",
+        "auto_fix": "esp32_pwm_fix"
       },
       {
         "id": "esp32_adc",
@@ -49,7 +50,8 @@
         "forbidden": ["1023", "1024"],
         "suggestion": "4095",
         "severity": "error",
-        "message": "ESP32 ADC resolution is 12-bit (4095), not 10-bit (1023/1024)."
+        "message": "ESP32 ADC resolution is 12-bit (4095), not 10-bit (1023/1024).",
+        "auto_fix": "esp32_adc_fix"
       }
     ],
     "style": [
