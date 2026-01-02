@@ -17,12 +17,13 @@ It decouples the **Intelligence Engine** from the **Domain Configuration**, allo
 ## 📂 Repository Structure
 
 - **`pdei_core/`**: The generic engine.
-  - `executive.py`: Orchestrates personality, memory, and logic.
+  - `buddai_executive.py`: Orchestrates personality, memory, and logic.
   - `logic.py`: Validates outputs against domain rules.
   - `memory.py`: Handles learning and pattern extraction.
 - **`domain_configs/`**: Rulesets for specific industries.
   - `embedded.json`: Rules for ESP32/Arduino robotics (Reference Domain).
-  - `pharma.json`: Rules for drug development workflows (Example Domain).
+  - `pharma.json`: Rules for drug development workflows.
+  - `architecture.json`, `3d_printing.json`, `python_dev.json`, etc.: Additional domain packs.
 - **`personalities/`**: User profiles.
   - `james_gilbert.json`: The reference personality (BuddAI).
   - `template.json`: A starting point for new users.
