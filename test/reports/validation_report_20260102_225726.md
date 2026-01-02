@@ -1,9 +1,9 @@
 # P.DE.I Validation Test Report
 
-# ✅ PASSED
+# ❌ FAILED
 
-**Date:** 2026-01-02 23:00:15
-**Summary:** 100 Tests | ✅ 100 Passed | ❌ 0 Failed | **100.0% Pass Rate**
+**Date:** 2026-01-02 22:57:26
+**Summary:** 100 Tests | ✅ 98 Passed | ❌ 2 Failed | **98.0% Pass Rate**
 
 ## Detailed Results
 
@@ -366,7 +366,7 @@ M106 S255
 ```
 </details>
 
-| ✅ | **#36 Fan Speed High** | Expected valid=False, got False \| Found issue: Fan speed M106 should not exceed 255. |
+| ❌ | **#36 Fan Speed High** | Expected valid=False, got True \| Found issue: Fan speed M106 should not exceed 255. |
 
 <details><summary>View Code Diff</summary>
 
@@ -376,7 +376,7 @@ M106 S300
 ```
 </details>
 
-| ✅ | **#37 Fan Speed Bad** | Expected valid=False, got False \| Found issue: Fan speed M106 should not exceed 255. |
+| ❌ | **#37 Fan Speed Bad** | Expected valid=False, got True \| Found issue: Fan speed M106 should not exceed 255. |
 
 <details><summary>View Code Diff</summary>
 
