@@ -46,7 +46,8 @@ except ImportError:
 
 # Shared Patterns
 COMPLEX_TRIGGERS = [
-    "multiple modules", "integrate", "combine", "modular", "state machine", "safety", "failsafe", "logic", "protocol", "integration"
+    "multiple modules", "integrate", "combine", "modular", "state machine", "safety", "failsafe", "logic", "protocol", "integration",
+    "complete system", "controller", "full stack"
 ]
 MODULE_PATTERNS = {
     "ble": ["ble", "bluetooth", "phone app", "remote"],
@@ -54,5 +55,8 @@ MODULE_PATTERNS = {
     "motor": ["motor", "drive", "l298n", "movement", "wheels"],
     "safety": ["safety", "timeout", "failsafe", "emergency"],
     "battery": ["battery", "voltage", "power"],
-    "sensor": ["sensor", "distance", "proximity", "ultrasonic", "ir"]
+    "sensor": ["sensor", "distance", "proximity", "ultrasonic", "ir", "ldr", "light", "photocell"],
+    "weapon": ["weapon", "combat", "arming", "fire", "spinner", "flipper"],
+    "logic": ["state machine", "logic", "structure", "flow", "armed", "disarmed"],
+    "led": ["led", "light", "brightness", "indicator"]
 }

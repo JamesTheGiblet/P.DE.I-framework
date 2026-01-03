@@ -1,5 +1,7 @@
 import logging
 import re
+import json
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 class PDEIValidator:
@@ -16,9 +18,34 @@ class PDEIValidator:
         self.validation_rules = self._load_validation_rules()
     
     def _load_validation_rules(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Load rules from the domain configuration."""
-        # Expecting a dictionary of rule categories (e.g., "safety", "style")
-        return self.domain_config.get('validation_rules', {})
+        """Load rules from the domain configuration and merge with Fundamental Forge Theory."""
+        # Start with domain specific rules (copying to avoid mutation)
+        source_rules = self.domain_config.get('validation_rules', {})
+        rules = {k: v[:] for k, v in source_rules.items()}
+        
+        # Load Fundamental Forge Theory Rules
+        try:
+            root_dir = Path(__file__).parent.parent
+            forge_path = root_dir / "domain_configs" / "forge_theory.json"
+            
+            if forge_path.exists():
+                with open(forge_path, 'r', encoding='utf-8') as f:
+                    forge_config = json.load(f)
+                    forge_rules = forge_config.get('validation_rules', {})
+                    
+                    for category, cat_rules in forge_rules.items():
+                        if category not in rules:
+                            rules[category] = []
+                        
+                        # Merge: Add Forge rule if ID not present in Domain rules
+                        existing_ids = {r.get('id') for r in rules[category] if 'id' in r}
+                        for rule in cat_rules:
+                            if rule.get('id') not in existing_ids:
+                                rules[category].append(rule)
+        except Exception as e:
+            logging.warning(f"⚠️ Failed to load Fundamental Forge Theory: {e}")
+
+        return rules
     
     def validate(self, code: str, context: str = "") -> Tuple[bool, List[Dict[str, Any]]]:
         """
@@ -49,6 +76,16 @@ class PDEIValidator:
             # 1. Check Platform/Context constraints
             if 'platform' in rule:
                 if rule['platform'].lower() not in context.lower():
+                    continue
+
+            # 1.5 Check Excluded Context
+            if 'exclude_context' in rule:
+                exclusions = rule['exclude_context']
+                if isinstance(exclusions, str):
+                    exclusions = [exclusions]
+                
+                # If any exclusion term is found in code or context, skip this rule
+                if any(ex in clean_code or ex.lower() in context.lower() for ex in exclusions):
                     continue
 
             # 2. Check Triggers

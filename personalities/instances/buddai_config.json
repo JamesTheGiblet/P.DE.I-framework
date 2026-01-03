@@ -1,0 +1,7 @@
+{
+  "framework": "P.DE.I v1.0",
+  "instance_name": "JamesTheGiblet-Exocortex",
+  "personality": "personalities/users/james_the_giblet.json",
+  "domain": "domain_configs/gilbot.json",
+  "owner": "JamesTheGiblet"
+}

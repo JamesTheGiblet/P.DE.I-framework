@@ -23,7 +23,26 @@
     },
     "step_response": {
       "pattern": "VALUE = FINAL * (1 - exp(-TIME / TAU)) + OFFSET",
-      "use_cases": ["control", "servo", "motor", "position"]
+      "use_cases": ["control", "servo", "motor", "position", "weapon", "flipper"],
+      "constants": {
+        "aggressive": {"tau": 0.3},
+        "balanced": {"tau": 0.1},
+        "graceful": {"tau": 0.03}
+      }
+    },
+    "ldr_smoothing": {
+      "pattern": "filtered = filtered * (1 - alpha) + raw * alpha",
+      "use_cases": ["sensor", "ldr", "smoothing", "filter"],
+      "constants": {
+        "alpha_calc": "alpha = dt / tau"
+      }
+    },
+    "rc_circuit": {
+      "pattern": "V(t) = V_final * (1 - exp(-t/(R*C)))",
+      "use_cases": ["capacitor", "rc", "filter", "power"],
+      "constants": {
+        "tau": "R * C"
+      }
     }
   },
   "validation_rules": {
@@ -51,6 +70,7 @@
         "severity": "error",
         "message": "Step response requires negative exponent: (1 - exp(-t/τ))",
         "trigger": ["servo", "motor", "position", "step"],
+        "exclude_context": ["PID", "integral", "error"],
         "forbidden": ["(1 - exp(t/"],
         "required_pattern": "(1 - exp(-",
         "auto_fix": "fix_step_response"
@@ -70,6 +90,20 @@
         "message": "Time constant τ should be defined with clear physical meaning",
         "trigger": ["tau", "time_constant", "τ"],
         "required_pattern": "tau ="
+      },
+      {
+        "id": "inline_forge_math",
+        "severity": "warning",
+        "message": "Forge Theory formulas should be inline for validation, not abstracted.",
+        "trigger": ["def apply_decay", "void applyDecay", "def apply_growth", "void applyGrowth"],
+        "forbidden": ["applyDecay", "applyGrowth", "apply_decay", "apply_growth"]
+      },
+      {
+        "id": "ldr_smoothing_formula",
+        "severity": "warning",
+        "message": "LDR smoothing should use: filtered = filtered * (1 - alpha) + raw * alpha",
+        "trigger": ["ldr", "photocell", "light_sensor", "smooth"],
+        "required_pattern": "(1 - "
       }
     ]
   }

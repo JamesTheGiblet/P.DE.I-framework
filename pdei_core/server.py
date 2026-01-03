@@ -81,7 +81,10 @@ class BuddAIManager:
     
     def get_instance(self, user_id: str) -> BuddAI:
         if user_id not in self.instances:
-            self.instances[user_id] = BuddAI(user_id=user_id, server_mode=True)
+            # Check for config override from environment
+            config_path = os.environ.get("PDEI_CONFIG")
+            kwargs = {"config_path": config_path} if config_path else {}
+            self.instances[user_id] = BuddAI(user_id=user_id, server_mode=True, **kwargs)
         return self.instances[user_id]
 
 buddai_manager = BuddAIManager()

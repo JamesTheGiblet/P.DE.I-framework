@@ -11,7 +11,7 @@ except ImportError:
 
 from pdei_core.logic import PDEIValidator
 from pdei_core.memory import PDEIMemory
-from pdei_core.shared import DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT, COMPLEX_TRIGGERS, SERVER_AVAILABLE, APP_NAME, DEFAULT_USER, DEFAULT_AI
+from pdei_core.shared import DATA_DIR, DB_PATH, MODELS, OLLAMA_HOST, OLLAMA_PORT, COMPLEX_TRIGGERS, SERVER_AVAILABLE, APP_NAME, DEFAULT_USER, DEFAULT_AI, MODULE_PATTERNS
 
 class OllamaConnectionPool:
     def __init__(self, host: str, port: int, max_size: int = 10):
@@ -183,7 +183,7 @@ class BuddAI(PDEIExecutive):
 
         # Fallback for bootstrapping
         if 'personality' not in self.app_config:
-            self.app_config['personality'] = "personalities/james_the_giblet.json"
+            self.app_config['personality'] = "personalities/users/james_the_giblet.json"
         if 'domain' not in self.app_config:
             self.app_config['domain'] = "domain_configs/embedded.json"
 
@@ -942,15 +942,28 @@ INTERNAL CHECK (Do not output confirmation):
 
     def _get_domain_modules(self) -> Dict:
         """Get module definitions from personality or defaults"""
-        defaults = {
-            "servo": ["servo", "mg996", "sg90"],
-            "dc_motor": ["l298n", "dc motor", "motor driver", "motor control"],
-            "button": ["button", "switch", "trigger"],
-            "led": ["led", "light", "brightness", "indicator"],
-            "weapon": ["weapon", "combat", "arming", "fire", "spinner", "flipper"],
-            "logic": ["state machine", "logic", "structure", "flow", "armed", "disarmed"]
-        }
-        return self.get_personality_value("domain_knowledge.modules", defaults)
+        # Start with shared patterns
+        modules = MODULE_PATTERNS.copy()
+        
+        # Check personality for 'module_keywords' (preferred)
+        overrides = self.get_personality_value("domain_knowledge.module_keywords", {})
+        
+        # Fallback: Check 'modules' but filter out file paths (legacy config support)
+        if not overrides:
+            candidate = self.get_personality_value("domain_knowledge.modules", {})
+            if candidate:
+                # Check if this looks like the file-path config (e.g. "active_learning": ["path/to/file"])
+                # vs keyword config (e.g. "servo": ["servo", "motor"])
+                is_path_config = False
+                for k, v in candidate.items():
+                    if isinstance(v, list) and any('/' in str(x) or '.json' in str(x) for x in v):
+                        is_path_config = True
+                        break
+                if not is_path_config:
+                    overrides = candidate
+
+        modules.update(overrides)
+        return modules
 
     def _get_domain_rules(self) -> Dict:
         """Get domain specific rules from personality or defaults"""
@@ -1058,8 +1071,23 @@ INTERNAL CHECK (Do not output confirmation):
             # module is used for key, keywords for values
             if any(kw in message_lower for kw in keywords):
                 needed_modules.append(module)
-                
-        return needed_modules
+        
+        # Repo History Detection (Context Awareness)
+        # If user mentions a repo name, treat it as a module
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT repo_name FROM repo_index WHERE user_id = ?", (self.user_id,))
+            repos = [r[0] for r in cursor.fetchall()]
+            conn.close()
+            
+            for repo in repos:
+                if repo and repo.lower() in message_lower:
+                    needed_modules.append(repo)
+        except:
+            pass
+
+        return list(set(needed_modules))
         
     def build_modular_plan(self, modules: List[str]) -> List[Dict[str, str]]:
         """Create a build plan from modules"""
@@ -1338,10 +1366,63 @@ INTERNAL CHECK (Do not output confirmation):
             print(f"✅ {step['module'].upper()} module complete\n")
             print("-" * 50 + "\n")
         
+        # 1. Generate Validation Suite
+        print(f"🧪 Generating Validation Suite...")
+        
+        # Dynamic validation requirements based on active modules
+        reqs = [
+            "1. Safety timeout logic (millis() - lastCommand > SAFETY_TIMEOUT).",
+            "2. No blocking delays."
+        ]
+        if any(m in modules for m in ['servo', 'motor', 'weapon', 'flipper']):
+             reqs.append("3. Correct step response formula (negative exponent).")
+        if any(m in modules for m in ['led', 'light']):
+             reqs.append("4. Correct LED decay/growth formulas.")
+        if any(m in modules for m in ['sensor', 'ldr']):
+             reqs.append("5. LDR/Sensor smoothing algorithms (alpha filter).")
+
+        test_prompt = f"""Generate a Python unit test file (`test_compliance.py`) to validate the C++ code generated above.
+The test should use `unittest` and regex to check for:
+{chr(10).join(reqs)}
+
+Context:
+{', '.join(modules)}
+"""
+        test_code = self.call_model("balanced", test_prompt)
+        
+        # 2. Run Internal Validation
+        print(f"🕵️ Running Internal Validation...")
+        validation_report = "\n## VALIDATION REPORT\n"
+        
+        for module, code in all_code.items():
+            # Extract code blocks if response contains markdown
+            code_blocks = self.extract_code(code)
+            if not code_blocks:
+                code_blocks = [code] # Assume raw code if no blocks
+                
+            for block in code_blocks:
+                valid, issues = self.validator.validate(block, context=module)
+                if not valid:
+                    validation_report += f"### {module.upper()} Issues:\n"
+                    for issue in issues:
+                        icon = "❌" if issue['severity'] == 'error' else "⚠️"
+                        validation_report += f"- {icon} {issue['message']}\n"
+                    
+                    # Attempt Auto-Fix
+                    fixed = self.validator.auto_fix(block, issues)
+                    if fixed != block:
+                        all_code[module] = all_code[module].replace(block, fixed)
+                        validation_report += f"  ✨ Auto-fixed critical issues in {module}.\n"
+                else:
+                    validation_report += f"- ✅ {module.upper()} Passed\n"
+
         # Compile final response
         final = "# COMPLETE SYSTEM CONTROLLER - MODULAR BUILD\n\n"
         for module, code in all_code.items():
             final += f"## {module.upper()} MODULE\n{code}\n\n"
+            
+        final += f"## VALIDATION SUITE (test_compliance.py)\n{test_code}\n"
+        final += validation_report
             
         return final
         
@@ -2272,9 +2353,10 @@ class ModelFineTuner:
         training_data = []
         for original, corrected, reason in cursor.fetchall():
             training_data.append({
-                "prompt": f"Generate code for: {reason}",
-                "completion": corrected,
-                "negative_example": original
+                "messages": [
+                    {"role": "user", "content": f"Generate code for: {reason}"},
+                    {"role": "assistant", "content": corrected}
+                ]
             })
         
         conn.close()

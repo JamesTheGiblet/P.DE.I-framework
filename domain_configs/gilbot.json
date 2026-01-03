@@ -1,0 +1,88 @@
+{
+  "domain": "gilbot",
+  "description": "ESP32-C3 Combat Robot + Forge Theory Control",
+  "file_types": [".ino", ".cpp", ".h", ".ts", ".js", ".py"],
+  "hardware_profiles": {
+    "ESP32-C3": {
+      "adc_resolution": 4095,
+      "pwm_function": "ledcWrite",
+      "serial_baud": 115200,
+      "forbidden_functions": ["analogWrite"]
+    }
+  },
+  "validation_rules": {
+    "safety": [
+      {
+        "id": "safety_timeout",
+        "severity": "error",
+        "message": "Combat robots require safety timeout (>500ms)",
+        "trigger": ["motor", "servo", "weapon"],
+        "required_pattern": "millis() - lastCommand > SAFETY_TIMEOUT",
+        "auto_fix": "inject_safety_timeout"
+      },
+      {
+        "id": "non_blocking",
+        "severity": "error",
+        "message": "Blocking delay() detected. Use millis() logic.",
+        "trigger": ["delay("],
+        "exception": "setup()"
+      }
+    ],
+    "hardware_specific": [
+      {
+        "id": "esp32_pwm",
+        "platform": "ESP32",
+        "forbidden": "analogWrite",
+        "severity": "error",
+        "message": "ESP32-C3 does not support analogWrite. Use ledcWrite.",
+        "auto_fix": "esp32_pwm_fix"
+      },
+      {
+        "id": "esp32_adc",
+        "platform": "ESP32",
+        "forbidden": ["1023", "1024"],
+        "severity": "error",
+        "message": "ESP32-C3 ADC is 12-bit (4095), not 10-bit.",
+        "auto_fix": "esp32_adc_fix"
+      }
+    ],
+    "forge_theory": [
+      {
+        "id": "decay_negative_exponent",
+        "severity": "error",
+        "message": "Decay formulas require NEGATIVE exponent: exp(-t/τ)",
+        "trigger": ["decay", "discharge", "cool", "fade", "led"],
+        "forbidden": ["exp(t/", "(1 - exp"],
+        "required_pattern": "exp(-",
+        "auto_fix": "fix_decay_formula"
+      },
+      {
+        "id": "growth_complement",
+        "severity": "error",
+        "message": "Growth formulas require complement form: (1 - exp(-t/τ))",
+        "trigger": ["charge", "heat", "rise", "grow", "approach", "brightness", "ramp"],
+        "forbidden": ["exp(t/"],
+        "required_pattern": "(1 - exp(-",
+        "auto_fix": "fix_growth_formula"
+      },
+      {
+        "id": "step_response_sign",
+        "severity": "error",
+        "message": "Step response requires negative exponent: (1 - exp(-t/τ))",
+        "trigger": ["servo", "motor", "position", "step", "weapon"],
+        "exclude_context": ["PID", "integral", "error"],
+        "forbidden": ["(1 - exp(t/"],
+        "required_pattern": "(1 - exp(-",
+        "auto_fix": "fix_step_response"
+      },
+      {
+        "id": "pid_dt_scaling",
+        "severity": "warning",
+        "message": "PID integral should scale with dt for frame-rate independence",
+        "trigger": ["integral +=", "error_sum +="],
+        "required_pattern": "dt",
+        "auto_fix": "fix_pid_dt"
+      }
+    ]
+  }
+}
