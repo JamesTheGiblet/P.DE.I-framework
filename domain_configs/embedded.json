@@ -10,6 +10,14 @@
       "includes": ["<Arduino.h>"],
       "forbidden_functions": ["analogWrite"]
     },
+    "ESP32-S3": {
+      "adc_resolution": 4095,
+      "pwm_function": "ledcWrite",
+      "serial_baud": 115200,
+      "includes": ["<Arduino.h>", "<esp_dsp.h>"],
+      "forbidden_functions": ["analogWrite"],
+      "capabilities": ["BLE", "WiFi", "AI_Vector_Instructions"]
+    },
     "Arduino": {
       "adc_resolution": 1023,
       "pwm_function": "analogWrite",

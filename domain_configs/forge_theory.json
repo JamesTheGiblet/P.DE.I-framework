@@ -1,0 +1,76 @@
+{
+  "domain": "forge_theory",
+  "description": "Gilbert's Exponential Decay/Growth Formula System",
+  "file_types": [".py", ".js", ".cpp", ".ino", ".html"],
+  "formula_templates": {
+    "decay": {
+      "pattern": "VALUE = INITIAL * exp(-TIME / TAU)",
+      "use_cases": ["discharge", "cooling", "fade", "decay"],
+      "constants": {
+        "aggressive": {"tau": 0.3},
+        "balanced": {"tau": 0.1},
+        "graceful": {"tau": 0.03}
+      }
+    },
+    "growth": {
+      "pattern": "VALUE = FINAL * (1 - exp(-TIME / TAU))",
+      "use_cases": ["charge", "heating", "rise", "approach"],
+      "constants": {
+        "aggressive": {"tau": 0.3},
+        "balanced": {"tau": 0.1},
+        "graceful": {"tau": 0.03}
+      }
+    },
+    "step_response": {
+      "pattern": "VALUE = FINAL * (1 - exp(-TIME / TAU)) + OFFSET",
+      "use_cases": ["control", "servo", "motor", "position"]
+    }
+  },
+  "validation_rules": {
+    "formulas": [
+      {
+        "id": "decay_negative_exponent",
+        "severity": "error",
+        "message": "Decay formulas require NEGATIVE exponent: exp(-t/τ)",
+        "trigger": ["decay", "discharge", "cool", "fade"],
+        "forbidden": ["exp(t/", "(1 - exp"],
+        "required_pattern": "exp(-",
+        "auto_fix": "fix_decay_formula"
+      },
+      {
+        "id": "growth_complement",
+        "severity": "error",
+        "message": "Growth formulas require complement form: (1 - exp(-t/τ))",
+        "trigger": ["charge", "heat", "rise", "grow"],
+        "forbidden": ["exp(t/"],
+        "required_pattern": "(1 - exp(-",
+        "auto_fix": "fix_growth_formula"
+      },
+      {
+        "id": "step_response_sign",
+        "severity": "error",
+        "message": "Step response requires negative exponent: (1 - exp(-t/τ))",
+        "trigger": ["servo", "motor", "position", "step"],
+        "forbidden": ["(1 - exp(t/"],
+        "required_pattern": "(1 - exp(-",
+        "auto_fix": "fix_step_response"
+      },
+      {
+        "id": "pid_dt_scaling",
+        "severity": "warning",
+        "message": "PID Integral/Derivative terms should scale with time step (dt) for resolution independence.",
+        "trigger": ["integral +=", "derivative =", "error_sum +="],
+        "forbidden": [],
+        "required_pattern": "dt",
+        "auto_fix": "fix_pid_dt"
+      },
+      {
+        "id": "tau_constant",
+        "severity": "warning",
+        "message": "Time constant τ should be defined with clear physical meaning",
+        "trigger": ["tau", "time_constant", "τ"],
+        "required_pattern": "tau ="
+      }
+    ]
+  }
+}

@@ -148,6 +148,14 @@ class PDEIValidator:
             return self._fix_pharma_audit_header(code)
         elif fix_type == "fix_ada_compliance":
             return self._fix_ada_compliance(code)
+        elif fix_type == "fix_decay_formula":
+            return self._fix_decay_formula(code, issue)
+        elif fix_type == "fix_growth_formula":
+            return self._fix_growth_formula(code, issue)
+        elif fix_type == "fix_step_response":
+            return self._fix_step_response(code, issue)
+        elif fix_type == "fix_pid_dt":
+            return self._fix_pid_dt(code, issue)
         return code
 
     def _fix_inject_safety_timeout(self, code: str) -> str:
@@ -204,3 +212,47 @@ class PDEIValidator:
         
         # Match any assignment: var = number
         return re.sub(r'([a-zA-Z0-9_]+)\s*=\s*(\d+)', replace_width, code)
+
+    def _fix_decay_formula(self, code: str, issue: Dict[str, Any]) -> str:
+        """Convert incorrect decay formulas to exp(-t/tau) form."""
+        # Fix: (1 - exp(t/tau)) -> exp(-t/tau)
+        # Regex captures content inside exp(...) as group 1
+        code = re.sub(r'1\s*-\s*exp\(([^)]+)\)', r'exp(-\1)', code)
+        
+        # Fix: exp(t/tau) -> exp(-t/tau)
+        # Regex looks for exp(t/...) and captures the denominator (tau) as group 1
+        code = re.sub(r'exp\(\s*t\s*/\s*([^)]+)\)', r'exp(-t/\1)', code)
+        return code
+
+    def _fix_growth_formula(self, code: str, issue: Dict[str, Any]) -> str:
+        """Convert incorrect growth formulas to (1 - exp(-t/tau)) form."""
+        lines = code.splitlines()
+        fixed = []
+        for line in lines:
+            # If line has exp(-t/tau) but no (1 - ...), wrap it
+            if 'exp(-' in line and '(1 -' not in line:
+                # Check context
+                if any(word in line.lower() for word in ['charge', 'heat', 'rise', 'grow']):
+                    line = re.sub(r'=\s*(.*exp\([^)]+\))', r'= (1 - \1)', line)
+            fixed.append(line)
+        return '\n'.join(fixed)
+
+    def _fix_step_response(self, code: str, issue: Dict[str, Any]) -> str:
+        """Fix sign in step response: (1 - exp(t/tau)) -> (1 - exp(-t/tau))"""
+        # Regex matches (1 - exp(t/tau)) and captures tau
+        return re.sub(r'\(1\s*-\s*exp\(\s*t\s*/\s*([^)]+)\)\)', r'(1 - exp(-t/\1))', code)
+
+    def _fix_pid_dt(self, code: str, issue: Dict[str, Any]) -> str:
+        """Inject * dt into PID integral terms."""
+        lines = code.splitlines()
+        fixed = []
+        triggers = ["integral +=", "error_sum +="]
+        for line in lines:
+            if any(t in line for t in triggers) and "dt" not in line:
+                # Append * dt before the semicolon if present
+                if ";" in line:
+                    line = line.replace(";", " * dt;")
+                else:
+                    line = line + " * dt"
+            fixed.append(line)
+        return "\n".join(fixed)
