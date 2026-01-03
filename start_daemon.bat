@@ -1,0 +1,6 @@
+@echo off
+echo 👻 Starting P.DE.I Daemon...
+echo 🌍 Opening Web Interface...
+start http://localhost:8000
+python scripts/init_exocortex.py --daemon
+pause

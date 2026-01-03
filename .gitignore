@@ -1,0 +1,28 @@
+# Python & Virtual Env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.env
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# P.DE.I Framework - Core Data
+# Protects chat history, vector stores, and backups
+pdei_core/data/
+*.db
+*.sqlite
+*.log
+
+# Generated Artifacts & Models
+# Protects IP (Trained weights) and Personal Profiling
+models/
+profiles/user_learned_profile.json
+pdei_core/deployment_log.json
+pdei_core/training_data.jsonl

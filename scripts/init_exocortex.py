@@ -1,10 +1,18 @@
 import json
 import os
 import time
+import sys
+import argparse
 
 # Configuration Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PERSONALITY_PATH = os.path.join(BASE_DIR, 'personalities', 'exocortex_universal.json')
+sys.path.append(BASE_DIR) # Ensure pdei_core can be imported
+
+PERSONALITY_PATH = os.path.join(BASE_DIR, 'personalities', 'james_the_giblet.json')
+DEPLOY_LOG_PATH = os.path.join(BASE_DIR, 'pdei_core', 'deployment_log.json')
+DOMAIN_PATH = os.path.join(BASE_DIR, 'domain_configs', 'web_dev.json') # Default domain
+
+from pdei_core.buddai_executive import BuddAI
 
 def load_json(path):
     try:
@@ -15,6 +23,10 @@ def load_json(path):
         return None
 
 def boot_sequence():
+    parser = argparse.ArgumentParser(description="P.DE.I Framework Bootloader")
+    parser.add_argument("--daemon", action="store_true", help="Run in Daemon Mode (HTTP Server)")
+    args = parser.parse_args()
+
     print("🔌 Initializing P.DE.I Framework...")
     time.sleep(0.5)
     
@@ -39,14 +51,37 @@ def boot_sequence():
             print(f"✨ Adaptation Complete. Tone set to: {tone}")
             print(f"🔒 Security Protocol: {profile.get('detected_traits', {}).get('security_preferences', {}).get('transport')}")
 
-    # 4. Output Welcome
-    print("\n" + "="*50)
-    welcome_msg = personality['communication']['welcome_message'].format(
-        ai_name=personality['identity']['ai_name'],
-        user_name=personality['identity']['user_name']
-    )
-    print(welcome_msg)
-    print("="*50 + "\n")
+    # 4. Load Active Model
+    print("⚙️  Checking Model Registry...")
+    deploy_log = load_json(DEPLOY_LOG_PATH)
+    active_model = None
+    
+    if deploy_log and isinstance(deploy_log, list):
+        # Get the most recent active model
+        active_model = next((m for m in reversed(deploy_log) if m.get('status') == 'active'), None)
+
+    if active_model:
+        print(f"🚀 Model Loaded: {active_model['model_name']} ({active_model['base_architecture']})")
+    else:
+        print("⚠️  No active model found. Running in fallback mode.")
+
+    # 6. Handoff to Runtime
+    print("\n🔌 Establishing Neural Link...")
+    time.sleep(1)
+    
+    try:
+        # Initialize the Executive
+        bot = BuddAI(
+            user_id="JamesTheGiblet",
+            personality_path=PERSONALITY_PATH,
+            domain_config_path=DOMAIN_PATH,
+            server_mode=args.daemon
+        )
+        bot.run()
+    except KeyboardInterrupt:
+        print("\n🔌 Link Severed.")
+    except Exception as e:
+        print(f"\n❌ Runtime Error: {e}")
 
 if __name__ == "__main__":
     boot_sequence()

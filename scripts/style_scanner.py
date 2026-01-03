@@ -6,7 +6,7 @@ from datetime import datetime
 # Configuration Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST_PATH = os.path.join(BASE_DIR, 'pdei_core', 'learning_manifest.json')
-PROFILE_OUTPUT_PATH = os.path.join(BASE_DIR, 'profiles', 'user_learned_profile.json')
+PROFILE_OUTPUT_PATH = os.path.join(BASE_DIR, 'profiles', 'james_the_giblet_learned.json')
 
 def load_json(path):
     with open(path, 'r') as f:
@@ -45,13 +45,18 @@ def simulate_style_scan(manifest):
         },
         "detected_traits": {
             "coding_style": {
-                "variable_naming": "Snake_case for variables, PascalCase for classes.",
-                "architecture": "Functional-first logic wrapped in modular OOP structures.",
-                "commenting": "High frequency. Focuses on 'Why' (intent)."
+                "variable_naming": "Snake_case for variables, PascalCase for classes. Prefers descriptive over concise.",
+                "architecture": "Functional-first logic wrapped in modular OOP structures. Heavy use of dependency injection.",
+                "commenting": "High frequency. Focuses on 'Why' (intent) rather than 'What' (implementation)."
             },
             "personality_matrix": {
                 "tone": "Pragmatic, direct, with dry technical humor.",
-                "problem_solving": "Iterative. Prefers 'Make it work, then make it right'."
+                "problem_solving": "Iterative. Prefers 'Make it work, then make it right' approach.",
+                "communication_brevity": "Medium. Values clarity over speed."
+            },
+            "security_preferences": {
+                "transport": "SSH (Strict)",
+                "verification": "GPG Signatures Required"
             }
         }
     }

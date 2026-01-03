@@ -1,19 +1,25 @@
 {
-  "model_settings": {
-    "base_architecture": "Qwen-14B-Chat",
-    "output_name": "pdei-qwen.llm",
-    "format": "gguf",
-    "context_window": 8192
-  },
+  "model_targets": [
+    {
+      "role": "fast",
+      "base_architecture": "Qwen-2.5-Coder-1.5B",
+      "output_suffix": "-fast-v1.llm"
+    },
+    {
+      "role": "balanced",
+      "base_architecture": "Qwen-2.5-Coder-3B",
+      "output_suffix": "-balanced-v1.llm"
+    }
+  ],
   "training_params": {
-    "method": "LoRA",
+    "method": "LoRA (Low-Rank Adaptation)",
     "epochs": 3,
-    "learning_rate": 2e-5,
-    "dataset_source": "pdei_core/learning_manifest.json"
+    "batch_size": 4,
+    "learning_rate": 0.0002
   },
   "notification": {
     "enabled": true,
-    "sound_alert": true,
-    "message": "🚀 TRAINING COMPLETE: Model {output_name} is ready for inference."
+    "message": "Training Complete! Model '{output_name}' is ready for deployment.",
+    "sound_alert": true
   }
 }

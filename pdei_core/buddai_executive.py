@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-from urllib.parse import urlparse
-import sys, os, json, logging, sqlite3, datetime, http.client, re, zipfile, shutil, queue, socket, argparse, io
+import sys, os, json, logging, sqlite3, http.client, http.server, re, zipfile, shutil, queue, socket, argparse, io
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
 
-from anthropic import BaseModel
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 from pdei_core.logic import PDEIValidator
 from pdei_core.memory import PDEIMemory
@@ -182,7 +183,7 @@ class BuddAI(PDEIExecutive):
 
         # Fallback for bootstrapping
         if 'personality' not in self.app_config:
-            self.app_config['personality'] = "personalities/james_gilbert.json"
+            self.app_config['personality'] = "personalities/james_the_giblet.json"
         if 'domain' not in self.app_config:
             self.app_config['domain'] = "domain_configs/embedded.json"
 
@@ -193,6 +194,10 @@ class BuddAI(PDEIExecutive):
         self.last_generated_id = None
         self.last_prompt_debug = None
         self.ensure_data_dir()
+
+        # Initialize Model Registry & Load Active Model
+        self.models = MODELS.copy()
+        self._load_active_model()
         
         # 3. Initialize Core Components
         self.memory = PDEIMemory(DB_PATH, user_id)
@@ -201,6 +206,7 @@ class BuddAI(PDEIExecutive):
         self.session_id = self.create_session()
         self.server_mode = server_mode
         self.context_messages = []
+        self.profile = self.load_profile()
         
         # Dynamic Hardware Loading
         profiles = self.get_domain_value("hardware_profiles", {})
@@ -222,23 +228,67 @@ class BuddAI(PDEIExecutive):
     
         # Show status if personality loaded
         if self.personality_loaded:
-            print(f"\n{self.get_user_status()}\n")
+            mode = "Daemon" if self.server_mode else "CLI"
+            print(f"\n📅 Schedule: {self.get_user_status()} | Mode: {mode}\n")
+
+    def load_profile(self) -> Dict[str, Any]:
+        """Load learned profile if defined in personality."""
+        profile_refs = self.get_personality_value("domain_knowledge.modules.learned_profile", [])
+        if profile_refs:
+            path = Path(profile_refs[0])
+            if path.exists():
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+                except: pass
+        return {}
         
+    def _load_active_model(self):
+        """Load the currently active model from deployment log."""
+        try:
+            core_dir = os.path.dirname(os.path.abspath(__file__))
+            log_path = os.path.join(core_dir, 'deployment_log.json')
+            if os.path.exists(log_path):
+                with open(log_path, 'r') as f:
+                    log = json.load(f)
+                
+                if isinstance(log, list):
+                    # Find latest active model for each role
+                    for role in ['fast', 'balanced']:
+                        active = next((m for m in reversed(log) if m.get('status') == 'active' and m.get('role') == role), None)
+                        
+                        if active:
+                            model_name = active.get('model_name', active.get('output_name', ''))
+                            if model_name:
+                                if model_name.endswith('.llm'):
+                                    model_name = model_name[:-4]
+                                
+                                print(f"🔄 Overriding '{role}' model with: {model_name}")
+                                self.models[role] = model_name
+        except Exception as e:
+            print(f"⚠️ Failed to load active model registry: {e}")
+
     def display_welcome_message(self):
         """Display the startup banner and status."""
         # Format welcome message with rule count
         welcome_tmpl = self.get_personality_value("communication.welcome_message", f"{APP_NAME} Executive v4.0 - Decoupled & Personality Sync")
+        
+        # Resolve Identity Placeholders
+        ai_name = self.get_personality_value("identity.ai_name", DEFAULT_AI)
+        user_name = self.get_personality_value("identity.user_name", DEFAULT_USER)
+        welcome_msg = welcome_tmpl.replace("{ai_name}", ai_name).replace("{user_name}", user_name)
+        
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM code_rules")
             count = cursor.fetchone()[0]
             conn.close()
-            welcome_msg = welcome_tmpl.replace("{rule_count}", str(count))
+            welcome_msg = welcome_msg.replace("{rule_count}", str(count))
             welcome_msg = welcome_msg.replace("{schedule_status}", self.get_user_status())
             print(welcome_msg)
         except:
-            print(welcome_tmpl.replace("{rule_count}", "0").replace("{schedule_status}", ""))
+            print(welcome_msg.replace("{rule_count}", "0").replace("{schedule_status}", ""))
             
         print("=" * 50)
         print(f"Session: {self.session_id}")
@@ -436,44 +486,180 @@ class BuddAI(PDEIExecutive):
         return context_block
 
     def scan_style_signature(self) -> None:
-        """V3.0: Analyze repo_index to extract style preferences."""
-        print("\n🕵️  Scanning repositories for style signature...")
+        """V3.0: Analyze repo_index AND recent chat logs to extract style preferences."""
+        print("\n🕵️  Scanning repositories and chat logs for style signature...")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
-        # Get a sample of code
-        cursor.execute("SELECT content FROM repo_index WHERE user_id = ? ORDER BY RANDOM() LIMIT 5", (self.user_id,))
-        rows = cursor.fetchall()
+        # Get a sample of code from Repos
+        cursor.execute("SELECT content FROM repo_index WHERE user_id = ? ORDER BY RANDOM() LIMIT 3", (self.user_id,))
+        repo_rows = cursor.fetchall()
         
-        if not rows:
-            print("❌ No code indexed. Run /index first.")
+        # Get recent generated code from Chat
+        cursor.execute("SELECT content FROM messages WHERE role = 'assistant' AND content LIKE '%```%' ORDER BY id DESC LIMIT 3")
+        chat_rows = cursor.fetchall()
+        
+        if not repo_rows and not chat_rows:
+            print("❌ No code indexed or generated. Run /index first or generate some code.")
             conn.close()
             return
             
-        code_sample = "\n---\n".join([r[0][:1000] for r in rows])
+        samples = []
+        for r in repo_rows:
+            samples.append(f"[REPO SOURCE]\n{r[0][:1000]}")
+            
+        for r in chat_rows:
+            # Extract code block
+            code_blocks = self.extract_code(r[0])
+            for code in code_blocks:
+                samples.append(f"[GENERATED SOURCE]\n{code[:1000]}")
         
-        prompt_template = self.get_personality_value("prompts.style_scan", "Analyze this code sample from {user_name}'s repositories.\nExtract 3 distinct coding preferences or patterns.\n\nCode Sample:\n{code_sample}")
-        prompt = prompt_template.format(user_name=self.get_personality_value("identity.user_name", "the user"), code_sample=code_sample)
+        code_sample = "\n---\n".join(samples[:5]) # Limit to 5 total
+        
+        prompt_template = self.get_personality_value("prompts.style_scan", "Analyze this code sample from {user_name}'s repositories and recent outputs.\nExtract 3 distinct coding preferences or patterns.\nProvide output in this format:\n- Category: Description\n\nCode Sample:\n{code_sample}")
+        prompt = prompt_template.format(
+            user_name=self.get_personality_value("identity.user_name", "the user"), 
+            code_sample=code_sample,
+            target="repositories and chat logs"
+        )
         
         print("⚡ Analyzing with BALANCED model...")
         summary = self.call_model("balanced", prompt, system_task=True)
         
         # Store in DB
         timestamp = datetime.now().isoformat()
+        
+        # Clear old preferences to avoid duplicates/pollution
+        cursor.execute("DELETE FROM style_preferences WHERE user_id = ?", (self.user_id,))
+        
         lines = summary.split('\n')
+        in_code_block = False
+        current_category = None
+
         for line in lines:
-            if ':' in line:
-                parts = line.split(':', 1)
-                category = parts[0].strip('- *')
-                pref = parts[1].strip()
-                cursor.execute(
-                    "INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    (self.user_id, category, pref, 0.8, timestamp)
-                )
+            if "```" in line:
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+                
+            line = line.strip()
+            if not line: continue
+
+            # 1. Handle "Category: Description" (Explicit)
+            if line.lower().startswith("category:"):
+                current_category = line.split(':', 1)[1].strip()
+                continue
+            if line.lower().startswith("description:") and current_category:
+                pref = line.split(':', 1)[1].strip()
+                self._save_preference(cursor, current_category, pref, timestamp)
+                current_category = None
+                continue
+
+            # 2. Handle Headers (e.g. "Naming:", "### Architecture")
+            clean_line = line.lstrip('#*- ')
+            is_header = False
+            # Check if line ends in colon or is a markdown header
+            if line.endswith(':') or line.startswith('#'):
+                header_candidate = line.strip('# :')
+                # Heuristic: Headers are usually short
+                if len(header_candidate.split()) < 4: 
+                    current_category = header_candidate
+                    is_header = True
+            
+            if is_header:
+                continue
+
+            # 3. Handle Key: Value lines (e.g. "- Variables: Snake_case")
+            if ':' in clean_line:
+                parts = clean_line.split(':', 1)
+                key = parts[0].strip()
+                val = parts[1].strip()
+                
+                if current_category:
+                    # Combine context: Category="Naming", Line="Variables: Snake_case" -> Pref="Variables: Snake_case"
+                    self._save_preference(cursor, current_category, f"{key}: {val}", timestamp)
+                else:
+                    # Fallback: Use Key as Category
+                    self._save_preference(cursor, key, val, timestamp)
+                continue
+
+            # 4. Handle Bullet points under a header (e.g. "- Snake_case...")
+            if current_category and (line.startswith('-') or line.startswith('*')):
+                val = line.lstrip('- *').strip()
+                self._save_preference(cursor, current_category, val, timestamp)
+                continue
         
         conn.commit()
         conn.close()
-        print(f"\n✅ Style Signature Updated:\n{summary}\n")
+        
+        # Sync to JSON Profile
+        self._sync_profile_from_db()
+        
+        print(f"\n✅ Style Signature Updated:")
+        if "detected_traits" in self.profile:
+            style = self.profile["detected_traits"].get("coding_style", {})
+            for k, v in style.items():
+                # Clean up display
+                label = k.replace('_', ' ').title()
+                print(f"  - {label}: {v}")
+        print("")
+
+    def _save_preference(self, cursor, category, preference, timestamp):
+        """Helper to insert preference if valid"""
+        if category and preference and category.lower() not in ['category', 'description']:
+            cursor.execute(
+                "INSERT INTO style_preferences (user_id, category, preference, confidence, extracted_at) VALUES (?, ?, ?, ?, ?)",
+                (self.user_id, category, preference, 0.8, timestamp)
+            )
+
+    def _sync_profile_from_db(self):
+        """Update the loaded JSON profile with latest DB scan results"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT category, preference FROM style_preferences WHERE user_id = ?", (self.user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        if not rows: return
+
+        # Map DB categories to JSON structure
+        traits = {
+            "variable_naming": [],
+            "architecture": [],
+            "commenting": []
+        }
+        
+        for cat, pref in rows:
+            cat = cat.lower()
+            if "naming" in cat or "variable" in cat:
+                traits["variable_naming"].append(pref)
+            elif "architecture" in cat or "logic" in cat or "oop" in cat:
+                traits["architecture"].append(pref)
+            elif "comment" in cat or "tone" in cat:
+                traits["commenting"].append(pref)
+        
+        # Update in-memory profile
+        if "detected_traits" not in self.profile: self.profile["detected_traits"] = {}
+        if "coding_style" not in self.profile["detected_traits"]: self.profile["detected_traits"]["coding_style"] = {}
+        
+        style = self.profile["detected_traits"]["coding_style"]
+        
+        # Join multiple observations with semicolons
+        if traits["variable_naming"]: style["variable_naming"] = "; ".join(traits["variable_naming"])
+        if traits["architecture"]: style["architecture"] = "; ".join(traits["architecture"])
+        if traits["commenting"]: style["commenting"] = "; ".join(traits["commenting"])
+        
+        # Save to file
+        profile_refs = self.get_personality_value("domain_knowledge.modules.learned_profile", [])
+        if profile_refs:
+            path = Path(profile_refs[0])
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump(self.profile, f, indent=2)
+                print(f"💾 Profile synced to {path}")
+            except Exception as e:
+                print(f"⚠️ Failed to sync profile JSON: {e}")
 
     def get_recent_context(self, limit: int = 5) -> str:
         """Get recent chat context as a string"""
@@ -495,6 +681,25 @@ class BuddAI(PDEIExecutive):
                 return profile_name
                 
         return None
+
+    def detect_language(self, message: str) -> str:
+        """Detect programming language from message"""
+        msg_lower = message.lower()
+        languages = {
+            "python": ["python", "flask", "django", "pandas", "numpy", "pip", "fastapi"],
+            "javascript": ["javascript", "js ", "node", "express", "npm"],
+            "typescript": ["typescript", "ts "],
+            "react": ["react", "jsx", "tsx", "component", "hook"],
+            "c++": ["c++", "cpp"],
+            "c": [" c ", "c language"],
+            "html/css": ["html", "css", "style", "markup"],
+            "sql": ["sql", "database", "query"]
+        }
+        
+        for lang, keywords in languages.items():
+            if any(kw in msg_lower for kw in keywords):
+                return lang.upper()
+        return "Software Logic (Infer from request)"
 
     def get_applicable_rules(self, user_message: str) -> List[Dict]:
         """Get rules relevant to the user message"""
@@ -646,14 +851,28 @@ class BuddAI(PDEIExecutive):
         if hardware.get("led") and ("status" in user_message.lower() or "indicator" in user_message.lower()):
             status_led_rule = domain_rules.get("status_led", "")
 
-        prompt = f"""You are generating code for: {', '.join(hardware_context)}
-You are an expert embedded developer.
+        # Inject User Profile Style
+        style_traits = self.profile.get("detected_traits", {}).get("coding_style", {})
+        arch_pref = style_traits.get("architecture", "Modular and clean.")
+        naming_pref = style_traits.get("variable_naming", "Standard conventions.")
+        comment_pref = style_traits.get("commenting", "Explain intent.")
+
+        persona = "expert embedded developer" if hardware_context else "expert software engineer"
+
+        if hardware_context:
+            prompt = f"""You are generating code for: {', '.join(hardware_context)}
+You are an {persona}.
 TARGET HARDWARE: {hardware_detected}
-ACTIVE MODULES: {', '.join(hardware_context) if hardware_context else "None (Logic Only)"}
+ACTIVE MODULES: {', '.join(hardware_context)}
 
 CRITICAL: Only use code patterns relevant to the hardware mentioned.
 STRICT NEGATIVE CONSTRAINTS (DO NOT IGNORE):
 {anti_bloat}
+
+USER CODING PROFILE (ENFORCE THIS STYLE):
+- Architecture: {arch_pref}
+- Naming: {naming_pref}
+- Commenting: {comment_pref}
 
 MANDATORY HARDWARE RULES:
 {chr(10).join(mandatory_rules)}
@@ -670,14 +889,53 @@ GENERAL GUIDELINES:
 CRITICAL RULES (MUST FOLLOW):
 {chr(10).join(relevant_rules)}
 
+CONFLICT RESOLUTION:
+If a CRITICAL RULE conflicts with the USER REQUEST, FOLLOW THE RULE. Explicitly state in your text response that you modified the request to comply with standards (e.g. "I generated X instead of Y because...").
+
 USER REQUEST:
 {user_message}
 
 Generate code following ALL rules above. Do not add unrequested features.
-FINAL CHECK:
+INTERNAL CHECK (Do not output confirmation):
 1. Did you add unrequested buttons? REMOVE THEM.
 2. Did you add unrequested servos? REMOVE THEM.
 3. Generate code ONLY for the hardware requested.
+"""
+        else:
+            # Pure Software Prompt (No Hardware Noise)
+            target_lang = self.detect_language(user_message)
+            lang_display = target_lang if "Infer" not in target_lang else "the target language"
+            
+            prompt = f"""You are generating code for: {target_lang}
+You are an {persona}.
+CONTEXT: Pure Software / Logic Implementation
+TARGET LANGUAGE: {target_lang}
+
+USER CODING PROFILE (ENFORCE THIS STYLE):
+- Architecture: {arch_pref}
+- Naming: {naming_pref} (CRITICAL: Adapt to {lang_display} standards. e.g. use camelCase for JS/React. Explain your choice.)
+- Commenting: {comment_pref}
+
+GUIDELINES:
+- Focus on clean, modular code.
+- Do not assume hardware availability unless mocked.
+- Assume user has authorization for all tasks (scraping, file I/O, etc.) in this local environment.
+{modularity_rule}
+
+CRITICAL RULES (MUST FOLLOW):
+{chr(10).join(relevant_rules)}
+
+CONFLICT RESOLUTION:
+If a CRITICAL RULE conflicts with the USER REQUEST, FOLLOW THE RULE. Explicitly state in your text response that you modified the request to comply with standards (e.g. "I generated X instead of Y because...").
+
+USER REQUEST:
+{user_message}
+
+Generate code following ALL rules above.
+INTERNAL CHECK (Do not output confirmation):
+1. Is the code modular?
+2. Did you follow the naming conventions?
+3. Is the logic clear?
 """
         
         return prompt
@@ -760,7 +1018,7 @@ FINAL CHECK:
             "what is", "what's", "who is", "who's", "when is",
             "how do i", "can you explain", "tell me about",
             "what are", "where is", "hi", "hello", "hey",
-            "good morning", "good evening"
+            "good morning", "good evening", "who are", "who am"
         ]
         
         # Also check if it's just a question without code keywords
@@ -873,10 +1131,13 @@ FINAL CHECK:
         """Retrieve high-confidence rules"""
         return self.memory.get_learned_rules(min_confidence=0.8)
 
-    def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False) -> Union[str, Generator[str, None, None]]:
+    def call_model(self, model_name: str, message: str, stream: bool = False, system_task: bool = False, system_prompt: str = None) -> Union[str, Generator[str, None, None]]:
         """Call specified model"""
         try:
             messages = []
+            
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
             
             if system_task:
                 # Direct prompt, no history, no enhancement
@@ -909,7 +1170,7 @@ FINAL CHECK:
             self.last_prompt_debug = json.dumps(messages, indent=2)
             
             body = {
-                "model": MODELS[model_name],
+                "model": self.models.get(model_name, MODELS.get(model_name)),
                 "messages": messages,
                 "stream": stream,
                 "options": {
@@ -1121,6 +1382,119 @@ FINAL CHECK:
             return self.regenerate_response(message_id, comment)
         return None
 
+    def start_daemon(self, port: int = 8000):
+        """Start the Exocortex in Daemon Mode (HTTP Server)"""
+        print(f"👻 Daemon Mode Active. Listening on http://localhost:{port} ...")
+        
+        executive = self
+        FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend')
+
+        class RequestHandler(http.server.BaseHTTPRequestHandler):
+            def _send_json(self, data):
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(data).encode('utf-8'))
+
+            def do_OPTIONS(self):
+                self.send_response(200)
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.end_headers()
+
+            def do_GET(self):
+                # Serve Frontend
+                if self.path == '/' or self.path == '/index.html':
+                    index_path = os.path.join(FRONTEND_DIR, 'index.html')
+                    if os.path.exists(index_path):
+                        self.send_response(200)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        with open(index_path, 'rb') as f:
+                            self.wfile.write(f.read())
+                    else:
+                        self.send_error(404, "Frontend not found")
+                    return
+
+                # API Endpoints
+                if self.path == '/api/sessions':
+                    self._send_json({"sessions": executive.get_sessions()})
+                    return
+                
+                if self.path == '/api/history':
+                    self._send_json({"history": executive.context_messages})
+                    return
+
+                if self.path == '/api/system/status':
+                    cpu = psutil.cpu_percent() if psutil else 0
+                    mem = psutil.virtual_memory().percent if psutil else 0
+                    self._send_json({"cpu": cpu, "memory": mem})
+                    return
+
+                self.send_error(404)
+
+            def do_POST(self):
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                try:
+                    data = json.loads(post_data) if post_data else {}
+                except Exception as e:
+                    self.send_error(500, str(e))
+                    return
+
+                if self.path == '/api/chat' or self.path == '/':
+                    message = data.get('message', '')
+                    forge_mode = data.get('forge_mode', '2')
+                    if message:
+                        response = executive.chat(message, forge_mode=forge_mode)
+                        self._send_json({
+                            "response": response, 
+                            "message_id": executive.last_generated_id
+                        })
+                    else:
+                        self.send_error(400, "Missing 'message' field")
+                    return
+
+                if self.path == '/api/session/new':
+                    self._send_json({"session_id": executive.start_new_session()})
+                    return
+
+                if self.path == '/api/session/load':
+                    sid = data.get('session_id')
+                    if sid:
+                        history = executive.load_session(sid)
+                        self._send_json({"session_id": sid, "history": history})
+                    return
+
+                if self.path == '/api/session/rename':
+                    executive.rename_session(data.get('session_id'), data.get('title'))
+                    self._send_json({"success": True})
+                    return
+
+                if self.path == '/api/session/delete':
+                    executive.delete_session(data.get('session_id'))
+                    self._send_json({"success": True})
+                    return
+                
+                if self.path == '/api/system/reset-gpu':
+                    self._send_json({"message": executive.reset_gpu()})
+                    return
+
+                self.send_error(404)
+            
+            def log_message(self, format, *args):
+                return # Suppress default logging to keep console clean
+
+        server = http.server.HTTPServer(('localhost', port), RequestHandler)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        server.server_close()
+        print("👻 Daemon Mode Stopped.")
+
     def regenerate_response(self, message_id: int, comment: str = "") -> str:
         """Regenerate a response, optionally considering feedback comment"""
         conn = sqlite3.connect(DB_PATH)
@@ -1193,7 +1567,19 @@ FINAL CHECK:
             msg_lower = user_message.lower().strip()
             is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
-            return self.call_model("fast", user_message, system_task=(is_greeting or is_conceptual))
+            
+            # Inject Identity/Security Context for self-referential questions
+            sys_prompt = None
+            if "your" in msg_lower or "security" in msg_lower or "protocol" in msg_lower or "who" in msg_lower or "purpose" in msg_lower:
+                ai_name = self.get_personality_value("identity.ai_name", "Exocortex")
+                role = self.get_personality_value("identity.role", "AI Assistant")
+                core_vals = self.get_personality_value("identity.core_values", [])
+                vals = ", ".join(core_vals) if core_vals else "Efficiency"
+                sec_proto = self.profile.get("detected_traits", {}).get("security_preferences", {}).get("transport", "Standard")
+                user_name = self.get_personality_value("identity.user_name", "User")
+                sys_prompt = f"You are {ai_name}. Purpose: {role}. Core Values: {vals}. Synced with {user_name}. Security: {sec_proto}. Answer briefly."
+
+            return self.call_model("fast", user_message, system_task=(is_greeting or is_conceptual or sys_prompt is not None), system_prompt=sys_prompt)
         else:
             print("\n⚖️  Using BALANCED model...")
             return self.call_model("balanced", user_message)
@@ -1238,7 +1624,19 @@ FINAL CHECK:
             msg_lower = user_message.lower().strip()
             is_greeting = any(msg_lower.startswith(w) for w in ['hi', 'hello', 'hey', 'good morning', 'good evening']) and len(user_message.split()) < 6
             is_conceptual = any(msg_lower.startswith(w) for w in ['what is', "what's", 'explain', 'tell me about', 'who is', 'can you explain'])
-            iterator = self.call_model("fast", user_message, stream=True, system_task=(is_greeting or is_conceptual))
+            
+            # Inject Identity/Security Context for self-referential questions
+            sys_prompt = None
+            if "your" in msg_lower or "security" in msg_lower or "protocol" in msg_lower or "who" in msg_lower or "purpose" in msg_lower:
+                ai_name = self.get_personality_value("identity.ai_name", "Exocortex")
+                role = self.get_personality_value("identity.role", "AI Assistant")
+                core_vals = self.get_personality_value("identity.core_values", [])
+                vals = ", ".join(core_vals) if core_vals else "Efficiency"
+                sec_proto = self.profile.get("detected_traits", {}).get("security_preferences", {}).get("transport", "Standard")
+                user_name = self.get_personality_value("identity.user_name", "User")
+                sys_prompt = f"You are {ai_name}. Purpose: {role}. Core Values: {vals}. Synced with {user_name}. Security: {sec_proto}. Answer briefly."
+
+            iterator = self.call_model("fast", user_message, stream=True, system_task=(is_greeting or is_conceptual or sys_prompt is not None), system_prompt=sys_prompt)
         else:
             iterator = self.call_model("balanced", user_message, stream=True)
             
@@ -1274,10 +1672,11 @@ FINAL CHECK:
             
         if cmd.startswith('/correct'):
             reason = command[8:].strip()
-            if reason.startswith('"') and reason.endswith('"'):
+            if (reason.startswith('"') and reason.endswith('"')) or (reason.startswith("'") and reason.endswith("'")):
                 reason = reason[1:-1]
-            elif reason.startswith("'") and reason.endswith("'"):
-                reason = reason[1:-1]
+            elif reason.startswith('"') or reason.startswith("'"):
+                reason = reason[1:]
+
             last_response = ""
             for msg in reversed(self.context_messages):
                 if msg['role'] == 'assistant':
@@ -1634,6 +2033,10 @@ FINAL CHECK:
 
     def run(self) -> None:
         """Main loop"""
+        if self.server_mode:
+            self.start_daemon()
+            return
+
         try:
             force_model = None
             while True:
@@ -1695,16 +2098,35 @@ FINAL CHECK:
                                 print(f"  - {p['rule']}")
                         else:
                             print("No new patterns found.")
+                            # Fallback: Check for recent explicit corrections that look like rules
+                            try:
+                                conn = sqlite3.connect(DB_PATH)
+                                cursor = conn.cursor()
+                                cursor.execute("SELECT reason FROM corrections ORDER BY id DESC LIMIT 1")
+                                row = cursor.fetchone()
+                                conn.close()
+                                
+                                if row and row[0]:
+                                    reason = row[0]
+                                    # Heuristic: If it contains rule keywords, treat as explicit rule
+                                    rule_keywords = ['always', 'never', 'use', 'must', 'should', 'prefer', "don't", 'avoid']
+                                    if any(kw in reason.lower() for kw in rule_keywords) and len(reason) < 150:
+                                        print(f"🤔 Converting recent correction to rule: '{reason}'")
+                                        self.teach_rule(reason)
+                                        print(f"✅ Learned rule: {reason}")
+                            except Exception as e:
+                                print(f"⚠️ Error in fallback learning: {e}")
                         continue
                     elif cmd == '/analyze':
                         self.adaptive_learner.learn_from_session(self.session_id)
                         continue
                     elif cmd.startswith('/correct'):
                         reason = user_input[8:].strip()
-                        if reason.startswith('"') and reason.endswith('"'):
+                        if (reason.startswith('"') and reason.endswith('"')) or (reason.startswith("'") and reason.endswith("'")):
                             reason = reason[1:-1]
-                        elif reason.startswith("'") and reason.endswith("'"):
-                            reason = reason[1:-1]
+                        elif reason.startswith('"') or reason.startswith("'"):
+                            reason = reason[1:]
+
                         last_response = ""
                         # Find last assistant message
                         for msg in reversed(self.context_messages):
@@ -1780,6 +2202,17 @@ FINAL CHECK:
                             for rule, conf, source in rows:
                                 print(f"  - [{conf:.1f}] {rule} ({source})")
                         continue
+                    elif cmd == '/status':
+                        mem_usage = "N/A"
+                        if psutil:
+                            process = psutil.Process(os.getpid())
+                            mem_usage = f"{process.memory_info().rss / 1024 / 1024:.0f} MB"
+                        print(f"🖥️ System Status:\n"
+                              f"   Session:  {self.session_id}\n"
+                              f"   Hardware: {self.current_hardware}\n"
+                              f"   Memory:   {mem_usage}\n"
+                              f"   Messages: {len(self.context_messages)}")
+                        continue
                     elif cmd == '/metrics':
                         print("📊 Metrics module pending migration to P.DE.I Core.")
                         continue 
@@ -1854,7 +2287,6 @@ class ModelFineTuner:
         return f"Exported {len(training_data)} examples to {output_path}"
     
     def fine_tune_model(self):
-        """Fine-tune Qwen on your corrections"""
         """Generate an Ollama Modelfile based on learned rules"""
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()

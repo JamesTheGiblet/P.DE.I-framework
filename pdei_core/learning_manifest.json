@@ -9,16 +9,1031 @@
   "learning_targets": {
     "repositories": [
       {
-        "alias": "core_style_source",
-        "url": "git@github.com:your-username/your-main-repo.git",
+        "alias": "artforge",
+        "url": "git@github.com:JamesTheGiblet/artforge.git",
         "branch": "main",
-        "focus": ["coding_patterns", "commit_message_style"]
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "auth-system-tool",
+        "url": "git@github.com:JamesTheGiblet/auth-system-tool.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "blockforge-suite",
+        "url": "git@github.com:JamesTheGiblet/blockforge-suite.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "BlockForge_platform",
+        "url": "git@github.com:JamesTheGiblet/BlockForge_platform.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "bodyforge",
+        "url": "git@github.com:JamesTheGiblet/bodyforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "brew-forge",
+        "url": "git@github.com:JamesTheGiblet/brew-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "BuddAI",
+        "url": "git@github.com:JamesTheGiblet/BuddAI.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "caffeine-forge",
+        "url": "git@github.com:JamesTheGiblet/caffeine-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "canna-forge",
+        "url": "git@github.com:JamesTheGiblet/canna-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "canna-know",
+        "url": "git@github.com:JamesTheGiblet/canna-know.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "canna-suit",
+        "url": "git@github.com:JamesTheGiblet/canna-suit.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "carbon-forge",
+        "url": "git@github.com:JamesTheGiblet/carbon-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "CertiScope-AI",
+        "url": "git@github.com:JamesTheGiblet/CertiScope-AI.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "CertiScope-forge",
+        "url": "git@github.com:JamesTheGiblet/CertiScope-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "christmas-forge",
+        "url": "git@github.com:JamesTheGiblet/christmas-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Cleanroom-Recovery-Visualizer",
+        "url": "git@github.com:JamesTheGiblet/Cleanroom-Recovery-Visualizer.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "coffee-forge-suite",
+        "url": "git@github.com:JamesTheGiblet/coffee-forge-suite.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "command-forge",
+        "url": "git@github.com:JamesTheGiblet/command-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "compli-forge",
+        "url": "git@github.com:JamesTheGiblet/compli-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "cosmic-drive",
+        "url": "git@github.com:JamesTheGiblet/cosmic-drive.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "crypto_hustler",
+        "url": "git@github.com:JamesTheGiblet/crypto_hustler.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "cyber-forge",
+        "url": "git@github.com:JamesTheGiblet/cyber-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "dope-forge",
+        "url": "git@github.com:JamesTheGiblet/dope-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "ecoforge",
+        "url": "git@github.com:JamesTheGiblet/ecoforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "emergence",
+        "url": "git@github.com:JamesTheGiblet/emergence.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "emissions-forge",
+        "url": "git@github.com:JamesTheGiblet/emissions-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "EnergyFlowForge",
+        "url": "git@github.com:JamesTheGiblet/EnergyFlowForge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Enhanced-Stock-Market-Particle-System",
+        "url": "git@github.com:JamesTheGiblet/Enhanced-Stock-Market-Particle-System.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "fire-forge",
+        "url": "git@github.com:JamesTheGiblet/fire-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "forge-engine",
+        "url": "git@github.com:JamesTheGiblet/forge-engine.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Forge-Products",
+        "url": "git@github.com:JamesTheGiblet/Forge-Products.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "forge_theory",
+        "url": "git@github.com:JamesTheGiblet/forge_theory.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "gameforge",
+        "url": "git@github.com:JamesTheGiblet/gameforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Genesis-forge",
+        "url": "git@github.com:JamesTheGiblet/Genesis-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "GitHub-repository-monitor",
+        "url": "git@github.com:JamesTheGiblet/GitHub-repository-monitor.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Golem-Forge",
+        "url": "git@github.com:JamesTheGiblet/Golem-Forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "grind-forge",
+        "url": "git@github.com:JamesTheGiblet/grind-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "holiday-cheer",
+        "url": "git@github.com:JamesTheGiblet/holiday-cheer.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "ImperfectaForge",
+        "url": "git@github.com:JamesTheGiblet/ImperfectaForge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "JamesTheGiblet",
+        "url": "git@github.com:JamesTheGiblet/JamesTheGiblet.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "langforge",
+        "url": "git@github.com:JamesTheGiblet/langforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "lead_leakage_forge",
+        "url": "git@github.com:JamesTheGiblet/lead_leakage_forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "lifeforge",
+        "url": "git@github.com:JamesTheGiblet/lifeforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "lightweight-env-validator",
+        "url": "git@github.com:JamesTheGiblet/lightweight-env-validator.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "M.I.L.O-Chatbot",
+        "url": "git@github.com:JamesTheGiblet/M.I.L.O-Chatbot.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "mcp",
+        "url": "git@github.com:JamesTheGiblet/mcp.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "MelodyForge",
+        "url": "git@github.com:JamesTheGiblet/MelodyForge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "metalanguageforge",
+        "url": "git@github.com:JamesTheGiblet/metalanguageforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "microbot",
+        "url": "git@github.com:JamesTheGiblet/microbot.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "mind-forge",
+        "url": "git@github.com:JamesTheGiblet/mind-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "MINOR_SHIFT-",
+        "url": "git@github.com:JamesTheGiblet/MINOR_SHIFT-.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "moneyforge",
+        "url": "git@github.com:JamesTheGiblet/moneyforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "motor-forge",
+        "url": "git@github.com:JamesTheGiblet/motor-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "n-boby-problem",
+        "url": "git@github.com:JamesTheGiblet/n-boby-problem.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "neural-draw",
+        "url": "git@github.com:JamesTheGiblet/neural-draw.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "neuroforge",
+        "url": "git@github.com:JamesTheGiblet/neuroforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "O-Licence-guard",
+        "url": "git@github.com:JamesTheGiblet/O-Licence-guard.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "P.DE.I-framework",
+        "url": "git@github.com:JamesTheGiblet/P.DE.I-framework.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "partial-playground",
+        "url": "git@github.com:JamesTheGiblet/partial-playground.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "petteomocha_v2",
+        "url": "git@github.com:JamesTheGiblet/petteomocha_v2.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Praximous-Johnny-5-Codex",
+        "url": "git@github.com:JamesTheGiblet/Praximous-Johnny-5-Codex.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "praximous-portal",
+        "url": "git@github.com:JamesTheGiblet/praximous-portal.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Praxoimous-AI-Gateway-MVP",
+        "url": "git@github.com:JamesTheGiblet/Praxoimous-AI-Gateway-MVP.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Aegis-CLI-MVP-Ready",
+        "url": "git@github.com:JamesTheGiblet/Project-Aegis-CLI-MVP-Ready.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-ChronoScribe",
+        "url": "git@github.com:JamesTheGiblet/Project-ChronoScribe.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-DPMS",
+        "url": "git@github.com:JamesTheGiblet/Project-DPMS.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-E.M.B.E.R",
+        "url": "git@github.com:JamesTheGiblet/Project-E.M.B.E.R.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-F-code",
+        "url": "git@github.com:JamesTheGiblet/Project-F-code.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Flux-2.0",
+        "url": "git@github.com:JamesTheGiblet/Project-Flux-2.0.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Flux-MVP-Ready",
+        "url": "git@github.com:JamesTheGiblet/Project-Flux-MVP-Ready.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-ForgeMind",
+        "url": "git@github.com:JamesTheGiblet/Project-ForgeMind.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-G.I.S.M.O",
+        "url": "git@github.com:JamesTheGiblet/Project-G.I.S.M.O.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Ganymede",
+        "url": "git@github.com:JamesTheGiblet/Project-Ganymede.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Iron-Arm",
+        "url": "git@github.com:JamesTheGiblet/Project-Iron-Arm.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-Praxis",
+        "url": "git@github.com:JamesTheGiblet/Project-Praxis.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-README-Hub",
+        "url": "git@github.com:JamesTheGiblet/Project-README-Hub.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Project-TotalControl",
+        "url": "git@github.com:JamesTheGiblet/Project-TotalControl.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "project_jumbo",
+        "url": "git@github.com:JamesTheGiblet/project_jumbo.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "QuantAlgo",
+        "url": "git@github.com:JamesTheGiblet/QuantAlgo.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "RevoPredict-MVP",
+        "url": "git@github.com:JamesTheGiblet/RevoPredict-MVP.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "roast-forge",
+        "url": "git@github.com:JamesTheGiblet/roast-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "robot-mk1",
+        "url": "git@github.com:JamesTheGiblet/robot-mk1.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "rubix-solver",
+        "url": "git@github.com:JamesTheGiblet/rubix-solver.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "scope_guard",
+        "url": "git@github.com:JamesTheGiblet/scope_guard.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "ScriptArchaeology",
+        "url": "git@github.com:JamesTheGiblet/ScriptArchaeology.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "ScriptForge",
+        "url": "git@github.com:JamesTheGiblet/ScriptForge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "servo-forge",
+        "url": "git@github.com:JamesTheGiblet/servo-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "setupflow_v2",
+        "url": "git@github.com:JamesTheGiblet/setupflow_v2.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "shaderforge",
+        "url": "git@github.com:JamesTheGiblet/shaderforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "shatterforge",
+        "url": "git@github.com:JamesTheGiblet/shatterforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "solarforge",
+        "url": "git@github.com:JamesTheGiblet/solarforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "SpatialPod-forge",
+        "url": "git@github.com:JamesTheGiblet/SpatialPod-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "StatMechForge",
+        "url": "git@github.com:JamesTheGiblet/StatMechForge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "supply-forge",
+        "url": "git@github.com:JamesTheGiblet/supply-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "terp-forge",
+        "url": "git@github.com:JamesTheGiblet/terp-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Texture-painting-Blender-addon-MVP-Ready",
+        "url": "git@github.com:JamesTheGiblet/Texture-painting-Blender-addon-MVP-Ready.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "the-pre-warriors",
+        "url": "git@github.com:JamesTheGiblet/the-pre-warriors.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "therapeutic-forge",
+        "url": "git@github.com:JamesTheGiblet/therapeutic-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "thermoforge",
+        "url": "git@github.com:JamesTheGiblet/thermoforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "To-Boldly-Know",
+        "url": "git@github.com:JamesTheGiblet/To-Boldly-Know.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "tooth-forge",
+        "url": "git@github.com:JamesTheGiblet/tooth-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "TreeCraft-AI",
+        "url": "git@github.com:JamesTheGiblet/TreeCraft-AI.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "treeforge",
+        "url": "git@github.com:JamesTheGiblet/treeforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "trial-forge",
+        "url": "git@github.com:JamesTheGiblet/trial-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "tyre-forge",
+        "url": "git@github.com:JamesTheGiblet/tyre-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "ultimate_hustler",
+        "url": "git@github.com:JamesTheGiblet/ultimate_hustler.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "VibeCode-AI-Assisted",
+        "url": "git@github.com:JamesTheGiblet/VibeCode-AI-Assisted.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "virusforge",
+        "url": "git@github.com:JamesTheGiblet/virusforge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "webpack-zero",
+        "url": "git@github.com:JamesTheGiblet/webpack-zero.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "weight-trial-forge",
+        "url": "git@github.com:JamesTheGiblet/weight-trial-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "wheelie",
+        "url": "git@github.com:JamesTheGiblet/wheelie.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "Whisper",
+        "url": "git@github.com:JamesTheGiblet/Whisper.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
+      },
+      {
+        "alias": "world-forge",
+        "url": "git@github.com:JamesTheGiblet/world-forge.git",
+        "branch": "main",
+        "focus": [
+          "coding_patterns",
+          "commit_message_style"
+        ]
       }
     ],
     "local_folders": [
       {
-        "path": "./personal_docs",
-        "focus": ["language_tone", "personality_traits"]
+        "path": "C:/Users/gilbe/Documents/GitHub/readme-hub",
+        "focus": [
+          "language_tone",
+          "personality_traits",
+          "coding_patterns"
+        ]
       }
     ]
   }
