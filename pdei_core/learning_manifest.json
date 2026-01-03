@@ -1,0 +1,25 @@
+{
+  "manifest_version": "1.0",
+  "description": "Source map for Exocortex IP training and style analysis.",
+  "security_context": {
+    "domain": "secure_ops",
+    "transport": "ssh",
+    "verification": "gpg"
+  },
+  "learning_targets": {
+    "repositories": [
+      {
+        "alias": "core_style_source",
+        "url": "git@github.com:your-username/your-main-repo.git",
+        "branch": "main",
+        "focus": ["coding_patterns", "commit_message_style"]
+      }
+    ],
+    "local_folders": [
+      {
+        "path": "./personal_docs",
+        "focus": ["language_tone", "personality_traits"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "model_settings": {
+    "base_architecture": "Qwen-14B-Chat",
+    "output_name": "pdei-qwen.llm",
+    "format": "gguf",
+    "context_window": 8192
+  },
+  "training_params": {
+    "method": "LoRA",
+    "epochs": 3,
+    "learning_rate": 2e-5,
+    "dataset_source": "pdei_core/learning_manifest.json"
+  },
+  "notification": {
+    "enabled": true,
+    "sound_alert": true,
+    "message": "🚀 TRAINING COMPLETE: Model {output_name} is ready for inference."
+  }
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "deployed_at": "2026-01-02T23:55:00",
+    "model_name": "pdei-qwen.llm",
+    "base_architecture": "Qwen-14B-Chat",
+    "status": "active",
+    "location": "models/pdei-qwen.llm"
+  },
+  {
+    "deployed_at": "2026-01-02T23:53:33.063866",
+    "model_name": "pdei-qwen.llm",
+    "base_architecture": "Qwen-14B-Chat",
+    "status": "active",
+    "location": "models/pdei-qwen.llm"
+  }
+]
