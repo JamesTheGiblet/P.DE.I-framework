@@ -20,14 +20,17 @@ It decouples the **Intelligence Engine** from the **Domain Configuration**, allo
   - `buddai_executive.py`: Orchestrates personality, memory, and logic.
   - `logic.py`: Validates outputs against domain rules.
   - `memory.py`: Handles learning and pattern extraction.
+  - `server.py`: FastAPI backend and WebSocket handler.
+  - `frontend/`: React-based Web Dashboard.
 - **`domain_configs/`**: Rulesets for specific industries.
   - `embedded.json`: Rules for ESP32/Arduino robotics (Reference Domain).
   - `pharma.json`: Rules for drug development workflows.
+  - `forge_theory.json`: Mathematical validation rules for control systems.
   - `architecture.json`, `3d_printing.json`, `python_dev.json`, etc.: Additional domain packs.
 - **`personalities/`**: User profiles.
   - `james_gilbert.json`: The reference personality (BuddAI).
   - `template.json`: A starting point for new users.
-- **`buddai_config.json`**: The entry point configuration for the reference implementation.
+- **`launch.py`**: The universal startup script.
 
 ## 🚀 Getting Started
 
@@ -46,11 +49,11 @@ pip install -r requirements.txt
 
 ### Running the Reference Implementation (BuddAI)
 
-BuddAI is the proof-of-concept implementation configured for **James Gilbert** in the **Embedded Systems** domain.
+BuddAI is the proof-of-concept implementation configured for **James Gilbert** in the **Embedded Systems** domain. The framework now includes a full Web UI.
 
 ```bash
-# Run the executive with the BuddAI configuration
-python main.py --config buddai_config.json
+# Launch the Server (API + Web Dashboard)
+python launch.py
 ```
 
 *(Note: Ensure Ollama is running before starting the framework)*
