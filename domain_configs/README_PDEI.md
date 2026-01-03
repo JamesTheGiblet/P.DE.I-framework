@@ -1,6 +1,6 @@
 # P.DE.I Framework Documentation
 
-**Personal Data-driven Exocortex Intelligence**
+## Personal Data-driven Exocortex Intelligence
 
 ## 🚀 Getting Started
 
