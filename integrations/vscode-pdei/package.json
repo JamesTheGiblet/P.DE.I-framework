@@ -1,0 +1,34 @@
+{
+  "name": "pdei-exocortex",
+  "displayName": "P.DE.I Exocortex",
+  "description": "Connect VS Code to your Personal Data-driven Exocortex",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "pdei.ask",
+        "title": "Ask Exocortex"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "pdei.ask",
+        "key": "ctrl+shift+q",
+        "mac": "cmd+shift+q",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0"
+  }
+}

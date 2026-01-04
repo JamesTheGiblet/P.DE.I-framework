@@ -4,7 +4,7 @@
   "security_context": {
     "domain": "secure_ops",
     "transport": "ssh",
-    "verification": "gpg"
+    "verification": "optional"
   },
   "learning_targets": {
     "repositories": [
@@ -56,15 +56,6 @@
       {
         "alias": "brew-forge",
         "url": "git@github.com:JamesTheGiblet/brew-forge.git",
-        "branch": "main",
-        "focus": [
-          "coding_patterns",
-          "commit_message_style"
-        ]
-      },
-      {
-        "alias": "BuddAI",
-        "url": "git@github.com:JamesTheGiblet/BuddAI.git",
         "branch": "main",
         "focus": [
           "coding_patterns",
@@ -522,15 +513,6 @@
         ]
       },
       {
-        "alias": "P.DE.I-framework",
-        "url": "git@github.com:JamesTheGiblet/P.DE.I-framework.git",
-        "branch": "main",
-        "focus": [
-          "coding_patterns",
-          "commit_message_style"
-        ]
-      },
-      {
         "alias": "partial-playground",
         "url": "git@github.com:JamesTheGiblet/partial-playground.git",
         "branch": "main",
@@ -677,15 +659,6 @@
       {
         "alias": "Project-Praxis",
         "url": "git@github.com:JamesTheGiblet/Project-Praxis.git",
-        "branch": "main",
-        "focus": [
-          "coding_patterns",
-          "commit_message_style"
-        ]
-      },
-      {
-        "alias": "Project-README-Hub",
-        "url": "git@github.com:JamesTheGiblet/Project-README-Hub.git",
         "branch": "main",
         "focus": [
           "coding_patterns",

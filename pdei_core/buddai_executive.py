@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
-import sys, os, json, logging, sqlite3, http.client, http.server, re, zipfile, shutil, queue, socket, argparse, io
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\buddai_executive.py
+P.DE.I Framework - BuddAI Executive Core
+========================================
+
+This module defines the `BuddAI` class, which acts as the central "brain" or executive controller
+for the P.DE.I framework. It orchestrates the interaction between the user, the LLM (Ollama),
+long-term memory (SQLite), and domain-specific validation logic.
+
+Key Responsibilities:
+1. Context Management: Maintains session history, user identity, and active hardware profiles.
+2. Request Routing: Decides whether a request is a simple chat, a complex modular build, or a database search.
+3. Code Generation & Validation: Generates code via LLM and validates it against domain rules (Forge Theory).
+4. Learning Loop: Captures user corrections and feedback to refine future outputs.
+5. Interface Handling: Supports both CLI interaction and a headless HTTP daemon mode.
+
+Where it fits:
+    This is the core logic library imported by `main.py`. While `main.py` handles the entry point and
+    process bootstrapping, `buddai_executive.py` contains the actual intelligence and business logic.
+"""
+import sys, os, json, logging, sqlite3, http.client, http.server, re, zipfile, shutil, queue, socket, argparse, io, threading
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
@@ -201,7 +221,7 @@ class BuddAI(PDEIExecutive):
         
         # 3. Initialize Core Components
         self.memory = PDEIMemory(DB_PATH, user_id)
-        self.validator = PDEIValidator(self.domain_config)
+        self.validator = PDEIValidator(self.domain_config, self.memory)
         
         self.session_id = self.create_session()
         self.server_mode = server_mode
@@ -290,6 +310,11 @@ class BuddAI(PDEIExecutive):
         except:
             print(welcome_msg.replace("{rule_count}", "0").replace("{schedule_status}", ""))
             
+        if "GITHUB_TOKEN" not in os.environ:
+            print("\n⚠️  WARNING: GITHUB_TOKEN not detected.")
+            print("   Repository syncing may stall due to API rate limits (60/hr).")
+            print("   Add GITHUB_TOKEN to your .env or system environment variables.")
+
         print("=" * 50)
         print(f"Session: {self.session_id}")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
@@ -492,7 +517,13 @@ class BuddAI(PDEIExecutive):
         cursor = conn.cursor()
         
         # Get a sample of code from Repos
-        cursor.execute("SELECT content FROM repo_index WHERE user_id = ? ORDER BY RANDOM() LIMIT 3", (self.user_id,))
+        # V4.1: Prioritize local "Digital Twin" folders (readme-hub) over generic repos
+        cursor.execute("""
+            SELECT content FROM repo_index 
+            WHERE user_id = ? 
+            ORDER BY CASE WHEN file_path LIKE '%readme-hub%' THEN 0 ELSE 1 END, RANDOM() 
+            LIMIT 3
+        """, (self.user_id,))
         repo_rows = cursor.fetchall()
         
         # Get recent generated code from Chat
@@ -668,6 +699,18 @@ class BuddAI(PDEIExecutive):
     def save_correction(self, original_code: str, corrected_code: str, reason: str):
         """Store when user fixes AI's code"""
         self.memory.save_correction(original_code, corrected_code, reason, self.get_recent_context())
+        
+        # Trigger background learning (Shadow Learning)
+        def background_learn():
+            try:
+                # Pass self as the AI interface for the learner to use LLM
+                patterns = self.learner.analyze_corrections(self)
+                if patterns:
+                    print(f"\n👻 [Shadow Learning] Learned {len(patterns)} new rules in background.")
+            except Exception as e:
+                print(f"⚠️ Background learning failed: {e}")
+                
+        threading.Thread(target=background_learn, daemon=True).start()
 
     def detect_hardware(self, message: str) -> Optional[str]:
         """Wrapper to detect hardware from message or return None if no change"""
@@ -1493,8 +1536,20 @@ Context:
                         self.send_response(200)
                         self.send_header('Content-type', 'text/html')
                         self.end_headers()
-                        with open(index_path, 'rb') as f:
-                            self.wfile.write(f.read())
+                        with open(index_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            # Inject PWA Headers
+                            pwa_head = """
+                            <link rel="manifest" href="/manifest.json">
+                            <meta name="theme-color" content="#1a1a1a">
+                            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+                            <script>
+                              if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+                            </script>
+                            """
+                            if "</head>" in content:
+                                content = content.replace("</head>", pwa_head + "\n</head>")
+                            self.wfile.write(content.encode('utf-8'))
                     else:
                         self.send_error(404, "Frontend not found")
                     return
@@ -1512,6 +1567,24 @@ Context:
                     cpu = psutil.cpu_percent() if psutil else 0
                     mem = psutil.virtual_memory().percent if psutil else 0
                     self._send_json({"cpu": cpu, "memory": mem})
+                    return
+
+                # PWA Static Files
+                if self.path == '/manifest.json':
+                    manifest_path = os.path.join(FRONTEND_DIR, 'manifest.json')
+                    if os.path.exists(manifest_path):
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        with open(manifest_path, 'rb') as f: self.wfile.write(f.read())
+                    return
+                if self.path == '/sw.js':
+                    sw_path = os.path.join(FRONTEND_DIR, 'sw.js')
+                    if os.path.exists(sw_path):
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/javascript')
+                        self.end_headers()
+                        with open(sw_path, 'rb') as f: self.wfile.write(f.read())
                     return
 
                 self.send_error(404)
@@ -1786,6 +1859,22 @@ Context:
         if cmd == '/metrics':
             # Metrics logic to be migrated to Memory or kept in a separate module
             return "📊 Metrics module pending migration to P.DE.I Core."
+
+        if cmd == '/audit':
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT learned_from, COUNT(*) as count, AVG(confidence) as avg_conf FROM code_rules GROUP BY learned_from ORDER BY count DESC")
+            rows = cursor.fetchall()
+            conn.close()
+            
+            if not rows:
+                return "🤷 No rules learned yet."
+            
+            report = "📊 Source Audit (Where am I learning from?):\n"
+            for source, count, avg_conf in rows:
+                source_name = source if source else "Unknown"
+                report += f"  - {source_name}: {count} rules (Avg Conf: {avg_conf:.2f})\n"
+            return report
 
         if cmd == '/debug':
             if self.last_prompt_debug:
@@ -2153,6 +2242,7 @@ Context:
                         print("/validate - Re-validate last response")
                         print("/rules - Show learned rules")
                         print("/metrics - Show improvement stats")
+                        print("/audit - Show rule sources")
                         print("/train - Export corrections for fine-tuning")
                         print("/build - Generate Ollama Modelfile from rules")
                         print("/save - Export chat to Markdown")
@@ -2297,6 +2387,21 @@ Context:
                     elif cmd == '/metrics':
                         print("📊 Metrics module pending migration to P.DE.I Core.")
                         continue 
+                    elif cmd == '/audit':
+                        conn = sqlite3.connect(DB_PATH)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT learned_from, COUNT(*) as count, AVG(confidence) as avg_conf FROM code_rules GROUP BY learned_from ORDER BY count DESC")
+                        rows = cursor.fetchall()
+                        conn.close()
+                        
+                        if not rows:
+                            print("🤷 No rules learned yet.")
+                        else:
+                            print("📊 Source Audit (Where am I learning from?):")
+                            for source, count, avg_conf in rows:
+                                source_name = source if source else "Unknown"
+                                print(f"  - {source_name}: {count} rules (Avg Conf: {avg_conf:.2f})")
+                        continue
                     elif cmd == '/debug':
                         if self.last_prompt_debug:
                             print(f"\n🐛 Last Prompt Sent:\n{self.last_prompt_debug}\n")

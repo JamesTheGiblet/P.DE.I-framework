@@ -1,4 +1,25 @@
 #!/usr/bin/env python3
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\setup.py
+P.DE.I Framework - Instance Initializer
+=======================================
+
+This script serves as the primary entry point for creating new P.DE.I (Personal Data-driven Exocortex Intelligence) instances.
+It automates the configuration process by:
+1. Validating the requested domain (e.g., pharma, embedded, game_dev).
+2. Generating a personalized JSON profile based on the user's identity.
+3. Linking the domain-specific validation rules to the personality.
+4. Creating a run-ready configuration file for the main executive.
+
+Usage:
+    python setup.py <domain> <user_name> [ai_name]
+
+Example:
+    python setup.py pharma "Dr. Sarah Chen" "PharmaAI"
+
+Where it fits:
+    This script is run ONCE per user/domain pair to bootstrap the environment before running 'main.py'.
+"""
 import json
 import sys
 from pathlib import Path

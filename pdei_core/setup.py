@@ -1,4 +1,26 @@
 #!/usr/bin/env python3
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\setup.py
+P.DE.I Framework - Core Setup Utility
+=====================================
+
+This script handles the advanced initialization of P.DE.I instances.
+It goes beyond basic configuration by initializing the database schema and 
+generating the necessary directory structures for the core runtime.
+
+Key Functions:
+1. Instance Provisioning: Creates personality and domain configuration files.
+2. Database Bootstrapping: Initializes the SQLite database via `PDEIMemory`.
+3. Environment Setup: Ensures all required data directories exist.
+4. Config Linking: Updates the global `buddai_config.json`.
+
+Usage:
+    python pdei_core/setup.py init --name <name> --domain <domain>
+
+Where it fits:
+    This script is located in `pdei_core/` and utilizes the framework's internal libraries 
+    to perform setup tasks that require database access or shared constants.
+"""
 import argparse
 import json
 import sys

@@ -1,4 +1,20 @@
 #!/usr/bin/env python3
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\server.py
+P.DE.I Framework - API & Web Server
+===================================
+
+This module implements the FastAPI server that exposes the P.DE.I framework over HTTP and WebSockets.
+It handles:
+1. REST API endpoints for chat, session management, and system status.
+2. WebSocket connections for real-time streaming responses.
+3. Serving the React frontend.
+4. Multi-user session management via `BuddAIManager`.
+
+Where it fits:
+    This module is imported by `main.py` when running in `--server` mode. It wraps the 
+    `BuddAI` executive in a web service layer.
+"""
 import sys, os, json, logging, sqlite3, datetime, pathlib, http.client, re, typing, zipfile, shutil, queue, socket, argparse, io, difflib
 from pathlib import Path
 from datetime import datetime, timedelta

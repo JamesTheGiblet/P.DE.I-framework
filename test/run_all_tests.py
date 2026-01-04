@@ -1,76 +1,104 @@
+#!/usr/bin/env python3
+"""
+Comprehensive test runner with report generation
+"""
+
 import unittest
 import sys
-import os
 from datetime import datetime
+from pathlib import Path
 
-# Add project root to path to ensure imports work correctly
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+def generate_report(result, output_file="test/reports/validation_test_report.md"):
+    """Generate markdown test report"""
+    
+    # Ensure reports directory exists
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+    
+    total_tests = result.testsRun
+    failures = len(result.failures)
+    errors = len(result.errors)
+    passed = total_tests - failures - errors
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("# P.DE.I Framework Validation Report\n\n")
+        f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"**Summary:** {total_tests} Tests | ✅ {passed} Passed | ❌ {failures + errors} Failed\n\n")
+        
+        f.write("| Status | Test Case | Description |\n")
+        f.write("| :---: | :--- | :--- |\n")
+        
+        # Write passed tests
+        for test in result.successes if hasattr(result, 'successes') else []:
+            test_name = test[0]._testMethodName
+            test_doc = test[0]._testMethodDoc or "No description"
+            f.write(f"| ✅ | {test_name} | {test_doc.strip()} |\n")
+        
+        # Write failed tests
+        for test, traceback in result.failures:
+            test_name = test._testMethodName
+            test_doc = test._testMethodDoc or "No description"
+            f.write(f"| ❌ | {test_name} | {test_doc.strip()} |\n")
+        
+        # Write error tests
+        for test, traceback in result.errors:
+            test_name = test._testMethodName
+            test_doc = test._testMethodDoc or "No description"
+            f.write(f"| ⚠️ | {test_name} | {test_doc.strip()} (ERROR) |\n")
+        
+        # Add detailed failure information if any
+        if failures + errors > 0:
+            f.write("\n## 🔍 Failure Details\n\n")
+            
+            for test, traceback in result.failures:
+                f.write(f"### ❌ {test._testMethodName}\n\n")
+                f.write("```\n")
+                f.write(traceback)
+                f.write("```\n\n")
+            
+            for test, traceback in result.errors:
+                f.write(f"### ⚠️ {test._testMethodName}\n\n")
+                f.write("```\n")
+                f.write(traceback)
+                f.write("```\n\n")
+    
+    print(f"\n📊 Test report generated: {output_file}")
+    print(f"✅ {passed}/{total_tests} tests passed")
+    
+    return passed == total_tests
 
-class MarkdownTestResult(unittest.TextTestResult):
-    def __init__(self, stream, descriptions, verbosity):
-        super().__init__(stream, descriptions, verbosity)
-        self.test_results = []
-
+class CustomTestResult(unittest.TextTestResult):
+    """Custom test result that tracks successes"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.successes = []
+    
     def addSuccess(self, test):
         super().addSuccess(test)
-        self.test_results.append({
-            "name": str(test),
-            "doc": test._testMethodDoc or "",
-            "status": "PASS"
-        })
+        self.successes.append((test, ''))
 
-    def addFailure(self, test, err):
-        super().addFailure(test, err)
-        self.test_results.append({
-            "name": str(test),
-            "doc": test._testMethodDoc or "",
-            "status": "FAIL",
-            "error": str(err[1])
-        })
-
-    def addError(self, test, err):
-        super().addError(test, err)
-        self.test_results.append({
-            "name": str(test),
-            "doc": test._testMethodDoc or "",
-            "status": "ERROR",
-            "error": str(err[1])
-        })
-
-if __name__ == '__main__':
-    # Discover tests in all subdirectories
-    loader = unittest.TestLoader()
-    start_dir = os.path.dirname(os.path.abspath(__file__))
+def main():
+    """Discover and run all tests, generate report"""
     
-    print(f"🔍 Discovering tests in {start_dir}...")
-    # Discover all test_*.py files recursively
+    print("🔍 Discovering tests in", Path(__file__).parent.absolute())
+    
+    # Discover all tests
+    loader = unittest.TestLoader()
+    start_dir = str(Path(__file__).parent)
     suite = loader.discover(start_dir, pattern='test_*.py')
     
-    # Run with custom result handler
-    runner = unittest.TextTestRunner(resultclass=MarkdownTestResult, verbosity=2)
+    # Run tests with custom result
+    runner = unittest.TextTestRunner(
+        verbosity=2,
+        resultclass=CustomTestResult
+    )
     result = runner.run(suite)
+    
+    # Generate report
+    success = generate_report(result)
+    
+    # Exit with appropriate code
+    sys.exit(0 if success else 1)
 
-    # Generate Report
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    report_path = os.path.join(start_dir, "validation_test_report.md")
-    
-    total = result.testsRun
-    passed = len([r for r in result.test_results if r['status'] == 'PASS'])
-    failed = total - passed
-    
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write(f"# P.DE.I Framework Validation Report\n\n")
-        f.write(f"**Date:** {timestamp}\n")
-        f.write(f"**Summary:** {total} Tests | ✅ {passed} Passed | ❌ {failed} Failed\n\n")
-        f.write("| Status | Test Case | Description |\n| :---: | :--- | :--- |\n")
-        for r in result.test_results:
-            icon = "✅" if r['status'] == "PASS" else "❌"
-            # Format name: test_method (module.Class) -> module.Class.test_method
-            name_parts = r['name'].split(' ')
-            test_method = name_parts[0]
-            test_class = name_parts[1].strip('()') if len(name_parts) > 1 else ""
-            
-            doc = r['doc'].strip().split('\n')[0] if r['doc'] else "No description"
-            f.write(f"| {icon} | **{test_method}**<br><small>{test_class}</small> | {doc} |\n")
-            
-    print(f"\n📄 Report generated: {report_path}")
+if __name__ == '__main__':
+    main()

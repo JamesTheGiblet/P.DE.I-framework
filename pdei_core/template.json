@@ -1,4 +1,17 @@
+
 {
+  "_comment": [
+    
+    "P.DE.I Framework - Personality Template",
+    "=======================================",
+    "This file serves as the blueprint for creating new AI personalities within the framework.",
+    "It defines the schema for identity, communication style, work schedules, and domain rules.",
+    "",
+    "Where it fits:",
+    "  - Used by `setup.py` (init command) to generate specific user personality files.",
+    "  - Loaded by `buddai_executive.py` to configure the runtime behavior of the AI.",
+    "  - Acts as the default fallback if specific configurations are missing."
+  ],
   "meta": {
     "version": "4.0",
     "author": "James The Giblet",

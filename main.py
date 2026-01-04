@@ -1,6 +1,27 @@
 #!/usr/bin/env python3
 """
-AI Executive v4.0 - Modular Entry Point
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\main.py
+P.DE.I Framework - Main Executive Runtime
+=========================================
+
+This script serves as the primary runtime entry point for the P.DE.I (Personal Data-driven Exocortex Intelligence) framework.
+It is responsible for bootstrapping the AI executive, managing connections to the local inference engine (Ollama),
+and exposing the interface (CLI or HTTP Server).
+
+Key Functions:
+1. Environment Validation: Checks if the local Ollama instance is reachable.
+2. Executive Initialization: Loads the `BuddAI` core with the specified configuration and personality.
+3. Mode Handling:
+   - CLI Mode: Runs an interactive terminal session.
+   - Server Mode: Launches a FastAPI/Uvicorn server for web/API access.
+4. Port Management: Automatically finds available ports if the default is busy.
+
+Usage:
+    python main.py [--server] [--config <path>] [--port <number>]
+
+Where it fits:
+    This script is executed AFTER initialization (via `setup.py`). It is the "brain" process that runs continuously
+    to handle user requests, code generation, and memory management.
 """
 
 import sys
@@ -8,6 +29,13 @@ import argparse
 import logging
 import socket
 import uvicorn
+
+# Try to load .env file for GITHUB_TOKEN and other secrets
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # --- Import The Organs ---
 from pdei_core.buddai_executive import BuddAI
@@ -32,6 +60,20 @@ def check_ollama() -> bool:
         return conn.getresponse().status == 200
     except:
         return False
+
+def get_tailscale_ip() -> str:
+    """Detect Tailscale IP (100.x.y.z) by checking route to MagicDNS."""
+    try:
+        # 100.100.100.100 is the Tailscale MagicDNS IP. 
+        # We use a UDP socket to check the routing table without sending data.
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("100.100.100.100", 80))
+            ip = s.getsockname()[0]
+            if ip.startswith("100."):
+                return ip
+    except:
+        pass
+    return None
 
 def is_port_available(port: int, host: str = "0.0.0.0") -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -72,6 +114,13 @@ def main():
                 def filter(self, record):
                     return "/api/system/status" not in record.getMessage()
             logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+
+            # Detect Tailscale IP for mobile access
+            ts_ip = get_tailscale_ip()
+            if ts_ip:
+                print(f"🔌 Tailscale Detected: {ts_ip}")
+                if not args.public_url:
+                    args.public_url = f"http://{ts_ip}:{port}/web"
 
             print(f"🚀 {APP_NAME} Exocortex Online: http://{args.host}:{port}/web")
             if args.public_url:

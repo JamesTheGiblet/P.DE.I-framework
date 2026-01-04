@@ -1,3 +1,23 @@
+#!/usr/bin/env python3
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\logic.py
+P.DE.I Framework - Logic & Validation Engine
+============================================
+
+This module defines the `PDEIValidator` class, which serves as the Quality Assurance (QA) layer
+for the P.DE.I framework. It enforces domain-specific rules, safety constraints (Forge Theory),
+and coding standards on all AI-generated code.
+
+Key Responsibilities:
+1. Rule Management: Loads and merges validation rules from domain configurations and the core Forge Theory.
+2. Static Analysis: Scans code for forbidden patterns, missing safeguards, and context-specific violations.
+3. Auto-Correction: Capable of automatically fixing critical safety issues (e.g., injecting timeouts, correcting mathematical formulas).
+4. Compliance: Enforces industry-specific standards (e.g., ADA compliance, Pharma audit logging).
+
+Where it fits:
+    This module is imported by `buddai_executive.py`. It is invoked immediately after the LLM generates code
+    to validate, sanitize, and potentially auto-repair the output before it is shown to the user.
+"""
 import logging
 import re
 import json
@@ -11,8 +31,9 @@ class PDEIValidator:
     Handles domain-specific code validation and rule enforcement.
     This class acts as a generic engine that applies rules defined in the domain configuration.
     """
-    def __init__(self, domain_config: Dict[str, Any]):
+    def __init__(self, domain_config: Dict[str, Any], memory_interface: Any = None):
         self.domain_config = domain_config
+        self.memory_interface = memory_interface
         # Default to generic if not specified
         self.domain = domain_config.get('domain', 'generic')
         self.validation_rules = self._load_validation_rules()
@@ -37,11 +58,33 @@ class PDEIValidator:
                         if category not in rules:
                             rules[category] = []
                         
+                        suppressed_ids = self.domain_config.get('suppressed_rules', [])
+
                         # Merge: Add Forge rule if ID not present in Domain rules
                         existing_ids = {r.get('id') for r in rules[category] if 'id' in r}
                         for rule in cat_rules:
-                            if rule.get('id') not in existing_ids:
+                            if rule.get('id') not in existing_ids and rule.get('id') not in suppressed_ids:
                                 rules[category].append(rule)
+
+            # Load Learned Rules from Memory (The "Graduation" Link)
+            if self.memory_interface:
+                try:
+                    learned_rules = self.memory_interface.get_learned_rules(min_confidence=0.85)
+                    if learned_rules:
+                        if 'learned_behavior' not in rules:
+                            rules['learned_behavior'] = []
+                        
+                        for idx, rule in enumerate(learned_rules):
+                            rules['learned_behavior'].append({
+                                "id": f"learned_{idx}",
+                                "severity": "warning",
+                                "message": f"Learned Violation: {rule['rule']}",
+                                "forbidden_regex": [rule['find']],
+                                "auto_fix": "generic_regex_replace",
+                                "replacement": rule['replace']
+                            })
+                except Exception as e:
+                    logging.warning(f"Failed to load learned rules: {e}")
         except Exception as e:
             logging.warning(f"⚠️ Failed to load Fundamental Forge Theory: {e}")
 
@@ -122,12 +165,28 @@ class PDEIValidator:
                             
                         issues.append(self._create_issue(rule, f"Forbidden pattern: {pattern}", code, pattern))
 
+            # 3.5 Validate Forbidden Regex (For Learned Rules)
+            if 'forbidden_regex' in rule:
+                forbidden_re = rule['forbidden_regex']
+                if isinstance(forbidden_re, str):
+                    forbidden_re = [forbidden_re]
+                
+                for pattern in forbidden_re:
+                    if re.search(pattern, clean_code):
+                        issues.append(self._create_issue(rule, f"Forbidden pattern (regex): {pattern}", code, pattern, is_regex=True))
+
             # 4. Validate Required Patterns
             if 'required_pattern' in rule:
                 pattern = rule['required_pattern']
                 # Simple string check for now (could be upgraded to regex)
                 if pattern not in clean_code:
                     issues.append(self._create_issue(rule, f"Missing required pattern: {pattern}", code))
+
+            # 4.5 Validate Required Regex
+            if 'required_regex' in rule:
+                pattern = rule['required_regex']
+                if not re.search(pattern, clean_code):
+                    issues.append(self._create_issue(rule, f"Missing required pattern (regex): {pattern}", code))
 
             # 5. Implicit Trigger Violation
             # If no explicit forbidden/required patterns, the trigger itself might be the issue
@@ -141,25 +200,33 @@ class PDEIValidator:
 
         return issues
 
-    def _create_issue(self, rule: Dict[str, Any], default_msg: str, code: str, pattern: str = None) -> Dict[str, Any]:
+    def _create_issue(self, rule: Dict[str, Any], default_msg: str, code: str, pattern: str = None, is_regex: bool = False) -> Dict[str, Any]:
         issue = {
             "id": rule.get('id'),
             "severity": rule.get('severity', 'warning'),
             "message": rule.get('message', default_msg),
-            "line": self._find_line(code, pattern) if pattern else -1
+            "line": self._find_line(code, pattern, is_regex) if pattern else -1,
+            "trigger_pattern": pattern
         }
         if 'auto_fix' in rule:
             issue['auto_fix'] = rule['auto_fix']
+        if 'replacement' in rule:
+            issue['replacement'] = rule['replacement']
         return issue
 
-    def _find_line(self, code: str, substring: str) -> int:
+    def _find_line(self, code: str, substring: str, is_regex: bool = False) -> int:
         for i, line in enumerate(code.splitlines(), 1):
-            if substring in line:
+            if is_regex:
+                if re.search(substring, line):
+                    return i
+            elif substring in line:
                 return i
         return -1
 
     def _strip_comments(self, code: str) -> str:
         """Remove comments to prevent false positives in validation."""
+        # Remove C-style block comments /* ... */
+        code = re.sub(r'/\*[\s\S]*?\*/', '', code)
         # Remove // comments and # comments
         code = re.sub(r'//.*', '', code)
         code = re.sub(r'#.*', '', code)
@@ -193,6 +260,8 @@ class PDEIValidator:
             return self._fix_step_response(code, issue)
         elif fix_type == "fix_pid_dt":
             return self._fix_pid_dt(code, issue)
+        elif fix_type == "generic_regex_replace":
+            return self._fix_generic_regex(code, issue)
         return code
 
     def _fix_inject_safety_timeout(self, code: str) -> str:
@@ -270,7 +339,7 @@ class PDEIValidator:
             if 'exp(-' in line and '(1 -' not in line:
                 # Check context
                 if any(word in line.lower() for word in ['charge', 'heat', 'rise', 'grow']):
-                    line = re.sub(r'=\s*(.*exp\([^)]+\))', r'= (1 - \1)', line)
+                    line = re.sub(r'=\s*([^;]*?exp\([^)]+\))', r'= (1 - \1)', line)
             fixed.append(line)
         return '\n'.join(fixed)
 
@@ -293,3 +362,11 @@ class PDEIValidator:
                     line = line + " * dt"
             fixed.append(line)
         return "\n".join(fixed)
+
+    def _fix_generic_regex(self, code: str, issue: Dict[str, Any]) -> str:
+        """Apply a generic regex replacement from a learned rule."""
+        pattern = issue.get('trigger_pattern')
+        replacement = issue.get('replacement')
+        if pattern and replacement:
+            return re.sub(pattern, replacement, code)
+        return code

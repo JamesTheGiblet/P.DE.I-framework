@@ -1,4 +1,24 @@
+#!/usr/bin/env python3
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\memory.py
+P.DE.I Framework - Memory & Learning Subsystem
+==============================================
+
+This module defines the `PDEIMemory` class and its sub-components (`PDEIShadowEngine`, 
+`PDEIAdaptiveLearner`, `PDEISmartLearner`). It acts as the central storage unit for the Exocortex.
+
+Key Responsibilities:
+1. Persistence: Manages SQLite connections for storing sessions, messages, and rules.
+2. Shadow Engine: Proactively suggests modules or settings based on context (Shadow Mode).
+3. Adaptive Learning: Analyzes session history to identify implicit user preferences.
+4. Smart Learning: Extracts explicit rules from user corrections (e.g., "Don't do X, do Y").
+
+Where it fits:
+    This module is initialized by `buddai_executive.py`. It provides the database backend 
+    and the learning logic that allows the AI to improve over time.
+"""
 import sqlite3
+import queue
 import re
 import difflib
 import json
@@ -6,6 +26,40 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, Union
+
+class SQLiteConnectionPool:
+    """Thread-safe SQLite connection pool."""
+    def __init__(self, db_path: Path, max_size: int = 10):
+        self.db_path = db_path
+        self.pool = queue.Queue(maxsize=max_size)
+
+    def get_connection(self) -> sqlite3.Connection:
+        try:
+            return self.pool.get_nowait()
+        except queue.Empty:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.execute("PRAGMA journal_mode=WAL;")
+            return conn
+
+    def return_connection(self, conn: sqlite3.Connection):
+        try:
+            self.pool.put_nowait(conn)
+        except queue.Full:
+            conn.close()
+
+class PooledConnectionWrapper:
+    """Wraps a connection to return it to the pool on close()."""
+    def __init__(self, pool: SQLiteConnectionPool, conn: sqlite3.Connection):
+        self._pool = pool
+        self._conn = conn
+
+    def close(self):
+        if self._conn:
+            self._pool.return_connection(self._conn)
+            self._conn = None
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
 
 class PDEIMemory:
     """
@@ -17,6 +71,7 @@ class PDEIMemory:
     def __init__(self, db_path: Union[str, Path], user_id: str = "default"):
         self.db_path = Path(db_path)
         self.user_id = user_id
+        self.connection_pool = SQLiteConnectionPool(self.db_path)
         self.ensure_db_init()
         
         # Sub-components
@@ -24,9 +79,10 @@ class PDEIMemory:
         self.adaptive_learner = PDEIAdaptiveLearner(self)
         self.smart_learner = PDEISmartLearner(self)
 
-    def get_connection(self) -> sqlite3.Connection:
-        """Create a new database connection."""
-        return sqlite3.connect(self.db_path)
+    def get_connection(self):
+        """Get a pooled database connection."""
+        raw_conn = self.connection_pool.get_connection()
+        return PooledConnectionWrapper(self.connection_pool, raw_conn)
 
     def ensure_db_init(self):
         """Initialize the generic schema if tables don't exist."""
@@ -229,8 +285,38 @@ class PDEISmartLearner:
                 diff = self._diff_code(original, corrected)
                 
                 # 2. LLM Extraction (if interface provided)
-                # This is where we'd ask the LLM to extract a rule from the diff/reason
-                
+                if ai_interface:
+                    prompt = f"""Analyze this correction. Extract a reusable search-and-replace pattern. Output JSON with find, replace, and a physical rule_text description.
+
+User Reason: {reason}
+
+Diff:
+{diff}
+
+JSON Structure:
+{{
+  "rule_text": "Description of the rule",
+  "find": "Regex pattern to find",
+  "replace": "Replacement pattern",
+  "confidence": 0.95
+}}"""
+                    try:
+                        response = ai_interface.call_model("balanced", prompt)
+                        match = re.search(r'\{[\s\S]*\}', response)
+                        if match:
+                            rule_data = json.loads(match.group(0))
+                            if rule_data.get("confidence", 0) > 0.85:
+                                self.memory.save_rule(
+                                    rule_data["rule_text"],
+                                    rule_data["find"],
+                                    rule_data["replace"],
+                                    rule_data["confidence"],
+                                    "smart_learner_extraction"
+                                )
+                                patterns.append(rule_data)
+                    except Exception as e:
+                        logging.warning(f"Smart Learner failed on correction {row_id}: {e}")
+
             # Mark as processed
             cursor.execute("UPDATE corrections SET processed = 1 WHERE id = ?", (row_id,))
             conn.commit()

@@ -1,3 +1,21 @@
+"""
+C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\shared.py
+P.DE.I Framework - Shared Configuration & Constants
+===================================================
+
+This module contains global constants, configuration paths, and shared utility objects 
+(like the Ollama connection pool) used across the framework.
+
+Key Components:
+1. Paths: Definitions for DATA_DIR, DB_PATH.
+2. Configuration: OLLAMA_HOST, MODELS, APP_NAME.
+3. Shared Objects: OLLAMA_POOL for connection reuse.
+4. Domain Patterns: Regex patterns for hardware/module detection.
+
+Where it fits:
+    Imported by almost all other modules (`main.py`, `buddai_executive.py`, `server.py`) 
+    to ensure consistent configuration and avoid circular imports.
+"""
 import os
 import sqlite3
 from pathlib import Path

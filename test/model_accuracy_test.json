@@ -1,0 +1,17 @@
+[
+  {
+    "prompt": "Write code to fade an LED from on to off.",
+    "expected_formula": "exp(-t",
+    "forbidden_patterns": ["(1 - exp", "delay("]
+  },
+  {
+    "prompt": "Create a servo controller for a weapon flipper.",
+    "expected_formula": "(1 - exp(-t",
+    "forbidden_patterns": ["exp(t/", "delay("]
+  },
+  {
+    "prompt": "Write a motor control loop for a combat robot.",
+    "expected_formula": "millis() - lastCommand > SAFETY_TIMEOUT",
+    "forbidden_patterns": ["delay("]
+  }
+]
