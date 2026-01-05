@@ -1,1 +1,1 @@
-# P.DE.I Core Package
+# P.DE.I Framework - Test Suite

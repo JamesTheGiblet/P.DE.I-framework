@@ -1,10 +1,11 @@
 # P.DE.I Framework Validation Report
 
-**Date:** 2026-01-05 06:30:15
-**Summary:** 102 Tests | ✅ 102 Passed | ❌ 0 Failed
+**Date:** 2026-01-05 06:08:24
+**Summary:** 103 Tests | ✅ 102 Passed | ❌ 1 Failed
 
 | Status | Test Case | Description |
 | :---: | :--- | :--- |
+| ✅ | test_modelfile_content | Verify the generated Modelfile exists and has content. |
 | ✅ | test_below_threshold | Verify evolution does NOT trigger below threshold. |
 | ✅ | test_custom_threshold_behavior | Verify custom thresholds are respected. |
 | ✅ | test_data_points_hard_reset | Verify data points reset to 0, not just subtracted. |
@@ -105,3 +106,19 @@
 | ✅ | test_server_headers | Test presence of standard headers. |
 | ✅ | test_session_history | Test retrieving session history |
 | ✅ | test_system_status | Test system status endpoint (mocking psutil if needed) |
+| ⚠️ | test_benchmark_flow | Test the benchmark loop logic. (ERROR) |
+
+## 🔍 Failure Details
+
+### ⚠️ test_benchmark_flow
+
+```
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\test\test_benchmark_script.py", line 59, in test_benchmark_flow
+    benchmark_model.benchmark(str(self.model_dir), num_runs=1)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\scripts\benchmark_model.py", line 43, in benchmark
+    input_len = len(inputs['input_ids'][0])
+TypeError: object of type 'int' has no len()
+```
+

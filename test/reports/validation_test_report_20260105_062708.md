@@ -1,10 +1,11 @@
 # P.DE.I Framework Validation Report
 
-**Date:** 2026-01-05 06:30:15
-**Summary:** 102 Tests | ✅ 102 Passed | ❌ 0 Failed
+**Date:** 2026-01-05 06:27:08
+**Summary:** 113 Tests | ✅ 111 Passed | ❌ 2 Failed
 
 | Status | Test Case | Description |
 | :---: | :--- | :--- |
+| ✅ | test_modelfile_content | Verify the generated Modelfile exists and has content. |
 | ✅ | test_below_threshold | Verify evolution does NOT trigger below threshold. |
 | ✅ | test_custom_threshold_behavior | Verify custom thresholds are respected. |
 | ✅ | test_data_points_hard_reset | Verify data points reset to 0, not just subtracted. |
@@ -85,6 +86,15 @@
 | ✅ | test_smart_learner_diff | Test the diff generation logic in SmartLearner. |
 | ✅ | test_smart_learner_no_diff | Test diff generation with identical strings. |
 | ✅ | test_update_feedback | Test updating feedback on a message. |
+| ✅ | test_merge_missing_deps | Test graceful failure when ML libs are missing. |
+| ✅ | test_merge_success_flow | Test the merge flow with mocked libraries. |
+| ✅ | test_script_subprocess_help | Verify script runs via CLI and prints help. |
+| ✅ | test_load_training_data | Test data loading from DB. |
+| ✅ | test_main_execution | Test main function argument parsing and flow. |
+| ✅ | test_script_subprocess_help | Verify script runs via CLI and prints help. |
+| ✅ | test_train_model_cpu_fallback | Test training flow on CPU (no GPU detected). |
+| ✅ | test_train_model_missing_deps | Test train_model handles missing dependencies gracefully. |
+| ✅ | test_train_model_success_flow | Test the training flow when dependencies exist (mocked). |
 | ✅ | test_404_unknown_endpoint | Test accessing a non-existent endpoint. |
 | ✅ | test_chat_empty_body | Test chat endpoint with empty body. |
 | ✅ | test_chat_endpoint | Test the chat API endpoint |
@@ -105,3 +115,34 @@
 | ✅ | test_server_headers | Test presence of standard headers. |
 | ✅ | test_session_history | Test retrieving session history |
 | ✅ | test_system_status | Test system status endpoint (mocking psutil if needed) |
+| ⚠️ | test_benchmark_flow | Test the benchmark loop logic. (ERROR) |
+| ⚠️ | test_full_merge_and_create_flow | Verifies that convert_to_ollama correctly orchestrates the merge 
+and then prepares the Ollama creation command. (ERROR) |
+
+## 🔍 Failure Details
+
+### ⚠️ test_benchmark_flow
+
+```
+Traceback (most recent call last):
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\test\test_benchmark_script.py", line 59, in test_benchmark_flow
+    benchmark_model.benchmark(str(self.model_dir), num_runs=1)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\scripts\benchmark_model.py", line 47, in benchmark
+    input_len = inputs['input_ids'].shape[-1]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'shape'
+```
+
+### ⚠️ test_full_merge_and_create_flow
+
+```
+Traceback (most recent call last):
+  File "C:\Python313\Lib\unittest\mock.py", line 1426, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\test\test_pipeline_integration.py", line 49, in test_full_merge_and_create_flow
+    with open("Modelfile_custom", "r") as f:
+         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'Modelfile_custom'
+```
+

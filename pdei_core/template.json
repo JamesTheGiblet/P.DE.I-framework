@@ -38,13 +38,22 @@
     },
     "schedule_check_triggers": ["schedule", "status"]
   },
+  "forge_theory": {
+    "enabled": true,
+    "constants": {
+      "adaptation_rate": 0.5,
+      "retention_bias": 0.5
+    }
+  },
   "prompts": {
     "style_scan": "Analyze this text from {user_name}.\nExtract 3 distinct style preferences.",
     "integration_task": "Combine these inputs into a cohesive result.\nUser: {user_name}\nInputs:\n{modules_summary}",
     "style_reference": "\n[REFERENCE STYLE]\n"
   },
   "domain_knowledge": {
-    "modules": {},
+    "modules": {
+      "learned_profile": []
+    },
     "rules": {}
   }
 }

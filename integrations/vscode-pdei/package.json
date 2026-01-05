@@ -16,9 +16,8 @@
     "AI",
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onView:pdei.chatView"
-  ],
+  "activationEvents": [],
+
   "main": "./extension.js",
   "contributes": {
     "viewsContainers": {
@@ -35,7 +34,8 @@
         {
           "type": "webview",
           "id": "pdei.chatView",
-          "name": "Exocortex Chat"
+          "name": "Exocortex Chat",
+          "icon": "media/icon.svg"
         }
       ]
     },

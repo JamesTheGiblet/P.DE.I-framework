@@ -70,10 +70,10 @@ Set-Location ..\..
 Write-Host "Phase II: Resetting Exocortex Daemon..." -ForegroundColor Yellow
 
 # Safely terminate existing processes to prevent Port 8000 collisions
-$pdeiProcesses = Get-Process | Where-Object { $_.ProcessName -match "python|uvicorn" -and $_.CommandLine -match "main.py" }
+$pdeiProcesses = Get-CimInstance Win32_Process | Where-Object { $_.Name -match "python|uvicorn" -and $_.CommandLine -match "main.py" }
 if ($pdeiProcesses) {
     Write-Host "Stopping active Exocortex instances..."
-    $pdeiProcesses | Stop-Process -Force
+    $pdeiProcesses | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
     Start-Sleep -Seconds 2
 }
 
@@ -85,7 +85,7 @@ Write-Host "⚠️  Ensure Ollama is running! (main.py will exit if it's offline
 $persona = Get-ChildItem "personalities\*.json" | Where-Object { $_.Name -ne "template.json" } | Select-Object -First 1
 $personaArg = ""
 if ($persona) {
-    Write-Host "🧠 Found Perserve_iconsonality: $($persona.Name)" -ForegroundColor Cyan
+    Write-Host "🧠 Found Personality: $($persona.Name)" -ForegroundColor Cyan
     $personaArg = "--personality `"$($persona.FullName)`""
 }
 
