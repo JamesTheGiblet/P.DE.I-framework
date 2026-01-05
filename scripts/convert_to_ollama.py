@@ -1,4 +1,4 @@
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\scripts\convert_to_ollama.py
 P.DE.I Framework - Ollama Model Converter
 =========================================
@@ -23,11 +23,24 @@ import argparse
 import os
 import sys
 import subprocess
+from pathlib import Path
+
+# Allow importing sibling scripts
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    import merge_adapter
+except ImportError:
+    merge_adapter = None
 
 # Mapping roles to Ollama Base Models
 OLLAMA_MAP = {
     "fast": "qwen2.5-coder:1.5b",
     "balanced": "qwen2.5-coder:3b"
+}
+
+HF_MAP = {
+    "qwen2.5-coder:1.5b": "Qwen/Qwen2.5-Coder-1.5B",
+    "qwen2.5-coder:3b": "Qwen/Qwen2.5-Coder-3B"
 }
 
 def convert(args):
@@ -43,11 +56,26 @@ def convert(args):
 
     print(f"🐳 Creating Ollama Model: {model_name}")
     
-    # In a real scenario, we would merge the LoRA adapter from args.adapter with args.base
-    # For this simulation/prototype, we will create a Modelfile that wraps the base model
-    # and injects the 'learned' behavior via System Prompt.
+    # Optional: Merge Adapter if requested
+    if args.merge and args.adapter and os.path.exists(args.adapter):
+        if merge_adapter:
+            print(f"🔄 Attempting to merge adapter: {args.adapter}")
+            # Map Ollama tag to HF ID for merging
+            hf_base = HF_MAP.get(base_model, base_model)
+            output_dir = os.path.join("models", f"{model_name}-merged")
+            output_dir = os.path.abspath(output_dir)
+            
+            success = merge_adapter.merge_model(hf_base, args.adapter, output_dir)
+            if success:
+                print(f"✅ Merged model saved to: {output_dir}")
+                print("⚠️  NOTE: To use this in Ollama, convert to GGUF via llama.cpp, then update Modelfile FROM.")
+        else:
+            print("⚠️  Cannot merge: merge_adapter module missing or dependencies (torch, peft) not installed.")
     
-    modelfile_content = f"FROM {base_model}\n"
+    ollama_base = args.ollama_base if args.ollama_base else base_model
+    
+    # Create Modelfile (System Prompt Injection Strategy)
+    modelfile_content = f"FROM {ollama_base}\n"
     
     modelfile_content += 'SYSTEM """\n'
     modelfile_content += "You are P.DE.I (Personal Data-driven Exocortex Intelligence).\n"
@@ -87,6 +115,10 @@ def convert(args):
         
     print(f"📄 Generated Modelfile:\n{modelfile_content}")
     
+    if args.skip_create:
+        print(f"⚠️  Skipping 'ollama create'. Run manually: ollama create {model_name} -f {modelfile_path}")
+        return
+
     try:
         print(f"⚡ Running: ollama create {model_name} -f {modelfile_path}")
         subprocess.check_call(["ollama", "create", model_name, "-f", modelfile_path])
@@ -106,6 +138,9 @@ if __name__ == "__main__":
     parser.add_argument("--name", default="james-qwen-gilbot-v1", help="Name for the new Ollama model")
     parser.add_argument("--base", default="qwen2.5-coder:3b", help="Base Ollama model (e.g. qwen2.5-coder:3b)")
     parser.add_argument("--adapter", default="models/james-qwen-gilbot-v1.0", help="Path to adapter directory")
+    parser.add_argument("--merge", action="store_true", help="Attempt to merge adapter into base model (requires ML libs)")
+    parser.add_argument("--ollama-base", help="Base model for Modelfile FROM (if different from --base)")
+    parser.add_argument("--skip-create", action="store_true", help="Skip 'ollama create' command")
     
     args = parser.parse_args()
     convert(args)

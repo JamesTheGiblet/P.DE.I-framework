@@ -5,6 +5,7 @@ Comprehensive test runner with report generation
 
 import unittest
 import sys
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -63,6 +64,16 @@ def generate_report(result, output_file="test/reports/validation_test_report.md"
     
     print(f"\n📊 Test report generated: {output_file}")
     print(f"✅ {passed}/{total_tests} tests passed")
+    
+    # Create timestamped archive
+    try:
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        p = Path(output_file)
+        archive_path = p.parent / f"{p.stem}_{ts}{p.suffix}"
+        shutil.copy(p, archive_path)
+        print(f"🗃️  Archived report: {archive_path}")
+    except Exception as e:
+        print(f"⚠️  Failed to archive report: {e}")
     
     return passed == total_tests
 

@@ -1,0 +1,71 @@
+{
+  "name": "pdei-exocortex",
+  "publisher": "JamesTheGiblet",
+  "displayName": "P.DE.I Exocortex",
+  "description": "Connect VS Code to your Personal Data-driven Exocortex",
+  "version": "1.0.1",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pdei-sidebar",
+          "title": "P.DE.I Exocortex",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pdei-sidebar": [
+        {
+          "type": "webview",
+          "id": "pdei.chatView",
+          "name": "Exocortex Chat",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pdei.ask",
+        "title": "Ask Exocortex",
+        "icon": "media/icon.svg"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "pdei.ask",
+        "key": "ctrl+shift+q",
+        "mac": "cmd+shift+q",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "P.DE.I Exocortex",
+      "properties": {
+        "pdei.hostname": {
+          "type": "string",
+          "default": "localhost",
+          "description": "Hostname or IP address of the Exocortex API."
+        },
+        "pdei.port": {
+          "type": "number",
+          "default": 8000,
+          "description": "Port number of the Exocortex API."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0"
+  }
+}

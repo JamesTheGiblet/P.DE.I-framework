@@ -1,101 +1,65 @@
 # P.DE.I Framework
 
-**Personal Data-driven Exocortex Intelligence**
+**Personal Data-driven Exocortex Interface**
 
-> "The framework is generic. The intelligence is in the data. The personality makes it yours."
+The P.DE.I Framework is a sophisticated system designed to create a personalized AI extension of yourself. By analyzing your code repositories, commit history, and communication patterns, it creates an "Exocortex" that mirrors your coding style, values, and problem-solving methodologies.
 
-## 🧠 What is P.DE.I?
+## 🧠 Core Concepts
 
-P.DE.I is a **domain-agnostic framework** designed to build Personal AI Exocortexes. Unlike generic coding assistants that rely solely on pre-trained data, P.DE.I is designed to:
+- **Identity Mirroring**: The AI adopts your persona, defined in `personalities/`, ensuring interactions feel like an extension of your own thought process.
+- **Forge Theory**: An adaptive learning mechanism that tunes the AI's responses based on acceptance rates and retention bias.
+- **Secure Context**: Built with security in mind, utilizing SSH/GPG for operations and local execution.
 
-1. **Capture Expertise**: Learn from your specific corrections and repositories.
-2. **Enforce Methodologies**: Apply your specific rules (e.g., "Forge Theory", "GAMP5 Compliance").
-3. **Adapt to Context**: Sync with your work cycles, energy levels, and personality.
+## 📂 Project Structure
 
-It decouples the **Intelligence Engine** from the **Domain Configuration**, allowing the same core code to power a Robotics Engineer's assistant (like the reference "BuddAI") or a Pharmaceutical Regulatory aide.
-
-## 📂 Repository Structure
-
-- **`pdei_core/`**: The generic engine.
-  - `buddai_executive.py`: Orchestrates personality, memory, and logic.
-  - `logic.py`: Validates outputs against domain rules.
-  - `memory.py`: Handles learning and pattern extraction.
-  - `server.py`: FastAPI backend and WebSocket handler.
-  - `frontend/`: React-based Web Dashboard.
-- **`domain_configs/`**: Rulesets for specific industries.
-  - `embedded.json`: Rules for ESP32/Arduino robotics (Reference Domain).
-  - `pharma.json`: Rules for drug development workflows.
-  - `forge_theory.json`: Mathematical validation rules for control systems.
-  - `architecture.json`, `3d_printing.json`, `python_dev.json`, etc.: Additional domain packs.
-- **`personalities/`**: User profiles.
-  - `james_gilbert.json`: The reference personality (BuddAI).
-  - `template.json`: A starting point for new users.
-- **`launch.py`**: The universal startup script.
+- **`pdei_core/`**: Contains the core logic and the `learning_manifest.json` which directs the AI to your source code for training.
+- **`personalities/`**:
+  - `users/`: User-specific profiles (e.g., `james_the_giblet.json`).
+  - `instances/`: AI personality instances (e.g., `exocortex_universal.json`).
+- **`integrations/`**: Client interfaces.
+  - `vscode-pdei/`: The Visual Studio Code extension to bring the Exocortex into your editor.
+- **`scripts/`**: Utilities for initialization and model management.
 
 ## 🚀 Getting Started
 
-### 1. Installation
+### 1. Start the Daemon
 
-Ensure you have Python 3.8+ and Ollama installed.
+The core of the system runs as a local daemon.
+Double-click `start_daemon.bat` or run:
 
-```bash
-# Clone the repository
-git clone https://github.com/readme-hub/P.DE.I-framework.git
-cd P.DE.I-framework
-
-# Install dependencies
-pip install -r requirements.txt
+```cmd
+start_daemon.bat
 ```
 
-### Running the Reference Implementation (BuddAI)
+This will:
 
-BuddAI is the proof-of-concept implementation configured for **James Gilbert** in the **Embedded Systems** domain. The framework now includes a full Web UI.
+- Launch the P.DE.I Daemon.
+- Open the Web Interface at `http://localhost:8000`.
+- Initialize the Exocortex with the default personality.
 
-```bash
-# Launch the Server (API + Web Dashboard)
-python launch.py
-```
+### 2. VS Code Integration
 
-*(Note: Ensure Ollama is running before starting the framework)*
+To connect your editor to the Exocortex:
 
-## 🛠️ Customization
+1. Open the `integrations/vscode-pdei` folder.
+2. Install dependencies (`npm install`).
+3. Run the extension.
+4. Use **Ctrl+Shift+Q** to query the Exocortex.
 
-### 1. Create Your Personality
+## ⚙️ Configuration
 
-Copy `personalities/template.json` to `personalities/your_name.json` and define your:
+### Learning Manifest
 
-- **Identity**: Name, role, core values.
-- **Work Cycles**: When you work best (e.g., "Deep Work" vs. "Admin").
-- **Communication Style**: How you want the AI to talk to you.
+Edit `pdei_core/learning_manifest.json` to add your own repositories. The system uses these to learn your specific coding patterns.
 
-### 2. Define Your Domain
+### Personalities
 
-Create a config in `domain_configs/` (e.g., `architecture.json`) defining:
+Customize your AI's behavior by editing files in `personalities/`. You can define:
 
-- **Modules**: Key concepts in your field.
-- **Validation Rules**: Strict rules the AI must follow (e.g., building codes, safety checks).
+- **Core Values**: What the AI prioritizes (e.g., "IP Preservation", "Dry Humor").
+- **Communication Style**: How the AI speaks.
+- **Work Cycles**: Operational hours and triggers.
 
-### 3. Launch
+## 🤝 Contributing
 
-Create a `my_config.json` pointing to your new files:
-
-```json
-{
-  "framework": "P.DE.I v1.0",
-  "instance_name": "MyExocortex",
-  "personality": "personalities/your_name.json",
-  "domain": "domain_configs/architecture.json",
-  "owner": "Your Name"
-}
-```
-
-## 📄 License
-
-MIT License. Build your own cognitive extension.
-
-## ✅ Validation Status
-
-**Date:** 2026-01-02 22:12:01  
-**Summary:** 12 Tests | ✅ 12 Passed | ❌ 0 Failed | **100.0% Pass Rate**
-
-See [test/validation_test_report.md](test/validation_test_report.md) for detailed results.
+Contributions are welcome. Please ensure any new modules adhere to the `pdei_core/template.json` structure.

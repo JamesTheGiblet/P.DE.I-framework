@@ -3,6 +3,12 @@
   "displayName": "P.DE.I Exocortex",
   "description": "Connect VS Code to your Personal Data-driven Exocortex",
   "version": "1.0.0",
+  "publisher": "JamesTheGiblet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/readme-hub/P.DE.I-framework"
+  },
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -10,9 +16,29 @@
     "AI",
     "Programming Languages"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:pdei.chatView"
+  ],
   "main": "./extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pdei-sidebar",
+          "title": "P.DE.I Exocortex",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pdei-sidebar": [
+        {
+          "type": "webview",
+          "id": "pdei.chatView",
+          "name": "Exocortex Chat"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "pdei.ask",

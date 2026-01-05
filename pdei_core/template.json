@@ -38,10 +38,6 @@
     },
     "schedule_check_triggers": ["schedule", "status"]
   },
-  "forge_theory": {
-    "enabled": false,
-    "constants": {}
-  },
   "prompts": {
     "style_scan": "Analyze this text from {user_name}.\nExtract 3 distinct style preferences.",
     "integration_task": "Combine these inputs into a cohesive result.\nUser: {user_name}\nInputs:\n{modules_summary}",

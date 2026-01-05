@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\buddai_executive.py
 P.DE.I Framework - BuddAI Executive Core
 ========================================
@@ -23,6 +23,13 @@ import sys, os, json, logging, sqlite3, http.client, http.server, re, zipfile, s
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Union, Generator, Any
+
+# Try to load .env file from framework root
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
 
 try:
     import psutil
@@ -78,6 +85,16 @@ class PDEIExecutive:
     def load_personality(self) -> Dict[str, Any]:
         """Load personality JSON from file."""
         path = Path(self.personality_path)
+        
+        # Auto-fix for moved files (users/ subdirectory)
+        if not path.exists() and "users" not in path.parts:
+            # Try finding it in personalities/users/
+            if path.parent.name == "personalities":
+                new_path = path.parent / "users" / path.name
+                if new_path.exists():
+                    print(f"🔄 Redirecting personality path to: {new_path}")
+                    path = new_path
+
         if path.exists():
             try:
                 with open(path, 'r', encoding='utf-8') as f:
@@ -699,6 +716,7 @@ class BuddAI(PDEIExecutive):
     def save_correction(self, original_code: str, corrected_code: str, reason: str):
         """Store when user fixes AI's code"""
         self.memory.save_correction(original_code, corrected_code, reason, self.get_recent_context())
+        self._increment_evolution_metric(1)
         
         # Trigger background learning (Shadow Learning)
         def background_learn():
@@ -1031,9 +1049,30 @@ INTERNAL CHECK (Do not output confirmation):
         }
         return self.get_personality_value("domain_knowledge.rules", defaults)
 
+    def _increment_evolution_metric(self, amount: int = 1):
+        """Increment the evolution counter and persist to disk."""
+        try:
+            # 1. Update In-Memory
+            forge = self.personality.setdefault("forge_theory", {})
+            metrics = forge.setdefault("evolution_metrics", {})
+            
+            current = metrics.get("data_points_collected", 0)
+            metrics["data_points_collected"] = current + amount
+            
+            # 2. Persist to Disk
+            if self.personality_path and Path(self.personality_path).exists():
+                with open(self.personality_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.personality, f, indent=2)
+            
+            print(f"🧬 Data Point Collected! Total: {metrics['data_points_collected']}")
+            
+        except Exception as e:
+            print(f"⚠️ Failed to update evolution metrics: {e}")
+
     def teach_rule(self, rule_text: str):
         """Explicitly save a user-taught rule"""
         self.memory.save_rule(rule_text, "", "", 1.0, 'user_taught')
+        self._increment_evolution_metric(1)
 
     def log_compilation_result(self, code: str, success: bool, errors: str = ""):
         """Track what compiles vs what fails"""
@@ -1496,7 +1535,8 @@ Context:
         # Memory.py has save_message/save_correction but not explicit feedback logging yet.
         # We will keep this as is for now to minimize breakage, or add it to Memory.
         # Let's keep it here for now as it's specific to the chat loop.
-        pass 
+        if feedback:
+            self._increment_evolution_metric(1)
         
         # Adjust confidence scores
         self.update_style_confidence(message_id, feedback)
@@ -1918,16 +1958,32 @@ Context:
             
             return "\n".join(report)
 
+        if cmd == '/evolve':
+            forge = self.personality.get("forge_theory", {})
+            metrics = forge.get("evolution_metrics", {})
+            current = metrics.get("data_points_collected", 0)
+            threshold = metrics.get("retrain_threshold", 100)
+            
+            if current < threshold:
+                self._increment_evolution_metric(threshold - current)
+                return f"🧬 Evolution forced! Metrics bumped to {threshold}. Watchdog will trigger shortly."
+            return f"🧬 Threshold already met ({current}/{threshold}). Watchdog pending."
+
         if cmd == '/status':
             mem_usage = "N/A"
             if psutil:
                 process = psutil.Process(os.getpid())
                 mem_usage = f"{process.memory_info().rss / 1024 / 1024:.0f} MB"
             
+            forge = self.personality.get("forge_theory", {})
+            metrics = forge.get("evolution_metrics", {})
+            evo_status = f"{metrics.get('data_points_collected', 0)}/{metrics.get('retrain_threshold', 100)} (Gen {metrics.get('generation', 1)})"
+
             return (f"🖥️ System Status:\n"
                     f"   Session:  {self.session_id}\n"
                     f"   Hardware: {self.current_hardware}\n"
                     f"   Memory:   {mem_usage}\n"
+                    f"   Evolution: {evo_status}\n"
                     f"   Messages: {len(self.context_messages)}")
 
         return f"Command {cmd.split()[0]} not supported in chat mode."
@@ -2378,10 +2434,16 @@ Context:
                         if psutil:
                             process = psutil.Process(os.getpid())
                             mem_usage = f"{process.memory_info().rss / 1024 / 1024:.0f} MB"
+                        
+                        forge = self.personality.get("forge_theory", {})
+                        metrics = forge.get("evolution_metrics", {})
+                        evo_status = f"{metrics.get('data_points_collected', 0)}/{metrics.get('retrain_threshold', 100)} (Gen {metrics.get('generation', 1)})"
+
                         print(f"🖥️ System Status:\n"
                               f"   Session:  {self.session_id}\n"
                               f"   Hardware: {self.current_hardware}\n"
                               f"   Memory:   {mem_usage}\n"
+                              f"   Evolution: {evo_status}\n"
                               f"   Messages: {len(self.context_messages)}")
                         continue
                     elif cmd == '/metrics':

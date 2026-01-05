@@ -1,0 +1,7 @@
+{
+    "framework": "P.DE.I v1.0",
+    "instance_name": "Bot",
+    "personality": "personalities\\..\\user_personality.json",
+    "domain": "domain_configs\\test_domain.json",
+    "owner": "../User"
+}

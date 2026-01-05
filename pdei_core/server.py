@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\server.py
 P.DE.I Framework - API & Web Server
 ===================================
@@ -278,19 +278,30 @@ async def root(request: Request):
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse(Path(__file__).parent / "icons" / "icon.png")
+    return _serve_icon("icon.png")
 
 @app.get("/favicon-16x16.png", include_in_schema=False)
 async def favicon_16():
-    return FileResponse(Path(__file__).parent / "icons" / "favicon-16x16.png")
+    return _serve_icon("favicon-16x16.png")
 
 @app.get("/favicon-32x32.png", include_in_schema=False)
 async def favicon_32():
-    return FileResponse(Path(__file__).parent / "icons" / "favicon-32x32.png")
+    return _serve_icon("favicon-32x32.png")
 
 @app.get("/favicon-192x192.png", include_in_schema=False)
 async def favicon_192():
-    return FileResponse(Path(__file__).parent / "icons" / "favicon-192x192.png")
+    return _serve_icon("favicon-192x192.png")
+
+def _serve_icon(filename: str):
+    icon_dir = Path(__file__).parent / "icons"
+    path = icon_dir / filename
+    if path.exists():
+        return FileResponse(path)
+    # Fallback to generic icon if specific size missing
+    fallback = icon_dir / "icon.png"
+    if fallback.exists():
+        return FileResponse(fallback)
+    return Response(status_code=404)
 
 def validate_upload(file: UploadFile) -> bool:
     # Check size

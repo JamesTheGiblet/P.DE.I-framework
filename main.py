@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\main.py
 P.DE.I Framework - Main Executive Runtime
 =========================================
@@ -29,6 +29,7 @@ import argparse
 import logging
 import socket
 import uvicorn
+import asyncio
 
 # Try to load .env file for GITHUB_TOKEN and other secrets
 try:
@@ -40,10 +41,16 @@ except ImportError:
 # --- Import The Organs ---
 from pdei_core.buddai_executive import BuddAI
 from pdei_core.shared import APP_NAME, OLLAMA_HOST, OLLAMA_PORT, SERVER_AVAILABLE
+from pdei_core.evolution import evolution_watchdog
 
 # If server dependencies are present, import the app
 if SERVER_AVAILABLE:
-    from pdei_core.server import app
+    import pdei_core.server as server_module
+    app = server_module.app
+    from fastapi import Request
+    from fastapi.exceptions import RequestValidationError
+    from fastapi.responses import JSONResponse
+    from fastapi.middleware.cors import CORSMiddleware
 else:
     app = None
 
@@ -101,13 +108,60 @@ def main():
     if args.server:
         if SERVER_AVAILABLE and app:
             port = args.port
+            
+            # Inject Personality Override into Server Instance
+            if args.personality:
+                print(f"🔄 Overriding Server Personality: {args.personality}")
+                
+                import os
+                if not os.path.exists(args.personality):
+                    print(f"❌ ERROR: Personality file not found at: {args.personality}")
+
+                # Re-initialize BuddAI with the correct personality to ensure system prompt is refreshed
+                new_buddai = BuddAI(
+                    user_id="default",
+                    server_mode=True,
+                    config_path=args.config,
+                    personality_path=args.personality,
+                    domain_config_path=args.domain
+                )
+                
+                # Debug: Verify Identity Loading
+                try:
+                    # Check if identity loaded correctly (looking for user_name)
+                    ident = getattr(new_buddai, 'identity', {})
+                    if not ident and hasattr(new_buddai, 'personality'):
+                        ident = new_buddai.personality.get('identity', {})
+                    
+                    print(f"🔍 Debug: Loaded Identity -> User: {ident.get('user_name', 'Unknown')} | AI: {ident.get('ai_name', 'Unknown')}")
+                except Exception as e:
+                    print(f"⚠️ Debug: Could not inspect BuddAI identity: {e}")
+
+                # Update references in server module and app state
+                if hasattr(server_module, 'buddai'):
+                    server_module.buddai = new_buddai
+                if hasattr(server_module, 'executive'):
+                    server_module.executive = new_buddai
+                if hasattr(app, 'state'):
+                    app.state.buddai = new_buddai
+
             # Automatic port hunting logic
             if not is_port_available(port, args.host):
                 print(f"⚠️ Port {port} in use, searching for available port...")
                 for i in range(1, 11):
                     if is_port_available(port + i, args.host):
                         port += i
+                        print(f"⚠️ Switched to port {port}. Please update VS Code setting 'pdei.port' to {port}.")
                         break
+
+            # Enable CORS for VS Code Webview access
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["*"],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
 
             # Silence health check noise
             class EndpointFilter(logging.Filter):
@@ -126,6 +180,17 @@ def main():
             if args.public_url:
                 app.state.public_url = args.public_url
                 print(f"🔗 Public Tunnel: {args.public_url}")
+
+            @app.on_event("startup")
+            async def start_watchdog():
+                # Pass a lambda to always get the latest state
+                asyncio.create_task(evolution_watchdog(lambda: getattr(app.state, "buddai", None)))
+
+            @app.exception_handler(RequestValidationError)
+            async def validation_exception_handler(request: Request, exc: RequestValidationError):
+                logger.error(f"❌ Validation Error on {request.method} {request.url}")
+                logger.error(f"Details: {exc.errors()}")
+                return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
             uvicorn.run(app, host=args.host, port=port)
         else:

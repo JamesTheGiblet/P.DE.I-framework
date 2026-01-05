@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\setup.py
 P.DE.I Framework - Core Setup Utility
 =====================================
@@ -29,7 +29,7 @@ import re
 from pathlib import Path
 
 # Ensure pdei_core can be imported
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from pdei_core.memory import PDEIMemory
 from pdei_core.shared import DATA_DIR, DB_PATH
@@ -41,12 +41,13 @@ def sanitize_filename(name: str) -> str:
 def init_instance(name: str, domain: str):
     print(f"🚀 Initializing P.DE.I instance for {name} ({domain})...")
     
-    root_dir = Path(__file__).parent
-    personalities_dir = root_dir / "personalities"
+    core_dir = Path(__file__).parent
+    root_dir = core_dir.parent
+    personalities_dir = root_dir / "personalities" / "users"
     domains_dir = root_dir / "domain_configs"
     
     # Ensure directories exist
-    personalities_dir.mkdir(exist_ok=True)
+    personalities_dir.mkdir(parents=True, exist_ok=True)
     domains_dir.mkdir(exist_ok=True)
     DATA_DIR.mkdir(exist_ok=True)
 
@@ -58,7 +59,7 @@ def init_instance(name: str, domain: str):
     # Check if template exists
     if not template_path.exists():
         # Try to find it in pdei_core if not in personalities (legacy location check)
-        legacy_template = root_dir / "pdei_core" / "template.json"
+        legacy_template = core_dir / "template.json"
         if legacy_template.exists():
             print(f"ℹ️  Found template in legacy location, copying to {template_path}...")
             shutil.copy(legacy_template, template_path)
@@ -133,6 +134,27 @@ def init_instance(name: str, domain: str):
     print(f"✅ Configuration updated: {config_path}")
     print(f"\n✨ Ready to index repositories! Current State: {name} ({domain}) active.")
 
+def repair_config():
+    """Fix paths in buddai_config.json if they point to old locations."""
+    root_dir = Path(__file__).parent.parent
+    config_path = root_dir / "buddai_config.json"
+    
+    if config_path.exists():
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            
+        p_path = Path(config.get('personality', ''))
+        # Check if file is missing but exists in users/ subdir
+        if not p_path.exists() and p_path.parent.name == 'personalities':
+            new_path = p_path.parent / "users" / p_path.name
+            if new_path.exists():
+                config['personality'] = str(new_path).replace("\\", "/")
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2)
+                print(f"✅ Repaired config: {p_path} -> {new_path}")
+                return
+    print("ℹ️  Config appears correct or cannot be auto-repaired.")
+
 def main():
     parser = argparse.ArgumentParser(description="P.DE.I Setup & Bootstrap Tool")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -142,10 +164,14 @@ def main():
     init_parser.add_argument("--name", required=True, help="User name (e.g. 'Dr. Sarah')")
     init_parser.add_argument("--domain", required=True, help="Domain name (e.g. 'pharma')")
     
+    subparsers.add_parser("repair", help="Repair configuration paths")
+
     args = parser.parse_args()
     
     if args.command == "init":
         init_instance(args.name, args.domain)
+    elif args.command == "repair":
+        repair_config()
     else:
         parser.print_help()
 

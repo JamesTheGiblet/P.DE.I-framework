@@ -1,4 +1,4 @@
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\shared.py
 P.DE.I Framework - Shared Configuration & Constants
 ===================================================

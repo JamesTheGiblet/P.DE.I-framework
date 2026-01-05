@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 C:\Users\gilbe\Documents\GitHub\readme-hub\P.DE.I-framework\pdei_core\memory.py
 P.DE.I Framework - Memory & Learning Subsystem
 ==============================================
